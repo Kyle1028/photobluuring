@@ -10,7 +10,6 @@ from flask import Flask, render_template, request, send_from_directory, abort, u
 from flask_sqlalchemy import SQLAlchemy
 
 try:
-    # MediaPipe
     import mediapipe as mp
     from mediapipe.tasks import python as mp_python
     from mediapipe.tasks.python import vision as mp_vision
@@ -36,11 +35,21 @@ for d in (UPLOAD_IMAGE_DIR, UPLOAD_VIDEO_DIR, OUTPUT_IMAGE_DIR, OUTPUT_VIDEO_DIR
 
 app = Flask(__name__)
 
-# 資料庫設定
-DATABASE_PATH = BASE_DIR / "database" / "app.db"
-DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE_PATH}"
+# 資料庫設定 - MySQL
+# 從環境變數讀取，格式：mysql+pymysql://user:password@localhost:3306/photobluuring
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError(
+        "缺少 DATABASE_URL 環境變數！\n"
+        "請設定: set DATABASE_URL=mysql+pymysql://root:password@localhost:3306/photobluuring"
+    )
+
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,  # 自動檢查連線
+    "pool_recycle": 3600,   # 每小時回收連線
+}
 db = SQLAlchemy(app)
 
 
@@ -465,7 +474,6 @@ def apply_face_replace(image_bgr: np.ndarray, faces, overlay_rgba: np.ndarray):
 
 # 開啟影片寫入器
 def _open_video_writer(out_base: Path, fps: float, size: tuple[int, int]):
-    # 依序嘗試可用的影片編碼器
 
     candidates = [("avc1", ".mp4"), ("mp4v", ".mp4"), ("VP80", ".webm")]
     for fourcc_name, ext in candidates:
