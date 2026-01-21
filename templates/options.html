@@ -20,9 +20,46 @@
       .face-item img { width: 80px; height: 80px; object-fit: cover; }
       .back-link { color: #1f6feb; text-decoration: none; }
       .back-link:hover { text-decoration: underline; }
+      /* Loading Overlay */
+      .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+      .loading-overlay.active { display: flex; }
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .loading-text {
+        color: #ffffff;
+        margin-top: 16px;
+        font-size: 16px;
+      }
     </style>
   </head>
   <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">正在處理中，請稍候...</div>
+    </div>
+
     <div class="card">
       <h2>人臉標註預覽</h2>
       <div class="row">
@@ -31,6 +68,7 @@
       </div>
       <form action="/process" method="post" enctype="multipart/form-data" id="process-form">
         <input type="hidden" name="media_id" value="{{ media_id }}" />
+        <input type="hidden" name="is_video" value="{{ 'true' if is_video else 'false' }}" id="is-video" />
         <div class="row">
           <div class="preview-title">選擇要處理的人臉</div>
           {% if faces and faces|length > 0 %}
@@ -69,6 +107,9 @@
     <script>
       const form = document.getElementById("process-form");
       const overlayRow = document.getElementById("overlay-row");
+      const loadingOverlay = document.getElementById("loading-overlay");
+      const loadingText = document.getElementById("loading-text");
+      const isVideo = document.getElementById("is-video").value === "true";
       const radios = form.querySelectorAll('input[name="mode"]');
       const toggleOverlay = () => {
         const selected = form.querySelector('input[name="mode"]:checked');
@@ -76,6 +117,16 @@
       };
       radios.forEach((radio) => radio.addEventListener("change", toggleOverlay));
       toggleOverlay();
+
+      // Show loading overlay on form submit
+      form.addEventListener("submit", () => {
+        if (isVideo) {
+          loadingText.textContent = "正在處理影片中，影片較大可能需要較長時間，請耐心等候...";
+        } else {
+          loadingText.textContent = "正在處理照片中，請稍候...";
+        }
+        loadingOverlay.classList.add("active");
+      });
     </script>
   </body>
 </html>
