@@ -24,6 +24,8 @@ Thumbs.db
 uploads/
 outputs/
 previews/
+metadata/
+database/
 
 # Local test assets (optional)
 test/

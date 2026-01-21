@@ -1,11 +1,13 @@
 import json
 import os
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 import cv2
 import numpy as np
 from flask import Flask, render_template, request, send_from_directory, abort, url_for
+from flask_sqlalchemy import SQLAlchemy
 
 try:
     # MediaPipe
@@ -21,15 +23,51 @@ except Exception:
 
 BASE_DIR = Path(__file__).resolve().parent
 # 檔案存放
-UPLOAD_DIR = BASE_DIR / "uploads"
-OUTPUT_DIR = BASE_DIR / "outputs"
+UPLOAD_IMAGE_DIR = BASE_DIR / "uploads" / "images"
+UPLOAD_VIDEO_DIR = BASE_DIR / "uploads" / "videos"
+OUTPUT_IMAGE_DIR = BASE_DIR / "outputs" / "images"
+OUTPUT_VIDEO_DIR = BASE_DIR / "outputs" / "videos"
 PREVIEW_DIR = BASE_DIR / "previews"
+METADATA_DIR = BASE_DIR / "metadata"
 MODEL_DIR = BASE_DIR / "models"
 
-for d in (UPLOAD_DIR, OUTPUT_DIR, PREVIEW_DIR):
+for d in (UPLOAD_IMAGE_DIR, UPLOAD_VIDEO_DIR, OUTPUT_IMAGE_DIR, OUTPUT_VIDEO_DIR, PREVIEW_DIR, METADATA_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
 app = Flask(__name__)
+
+# 資料庫設定
+DATABASE_PATH = BASE_DIR / "database" / "app.db"
+DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE_PATH}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+
+
+# 資料庫模型
+class Media(db.Model):
+    """媒體檔案記錄"""
+    __tablename__ = "media"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    media_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    original_filename = db.Column(db.String(255))  # 原始檔名
+    file_type = db.Column(db.String(10), nullable=False)  # image / video
+    upload_path = db.Column(db.String(500))  # 上傳檔案路徑
+    output_path = db.Column(db.String(500))  # 處理後檔案路徑
+    process_mode = db.Column(db.String(20))  # mosaic / eyes / replace
+    face_count = db.Column(db.Integer, default=0)  # 偵測到的人臉數量
+    status = db.Column(db.String(20), default="uploaded")  # uploaded / processed
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    processed_at = db.Column(db.DateTime)
+    
+    def __repr__(self):
+        return f"<Media {self.media_id}>"
+
+
+# 建立資料表
+with app.app_context():
+    db.create_all()
 
 FACE_CASCADE = None
 EYE_CASCADE = None
@@ -79,6 +117,13 @@ def _create_face_landmarker_video():
 
 ALLOWED_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_VIDEO_EXT = {".mp4", ".mov", ".webm"}
+
+
+def _generate_media_id() -> str:
+    """產生具有時間戳的 media_id，格式：YYYYMMDD_HHMMSS_shortid"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    short_id = uuid.uuid4().hex[:8]
+    return f"{timestamp}_{short_id}"
 
 
 def _is_image(path: Path) -> bool:
@@ -223,14 +268,14 @@ def _save_faces_metadata(image_bgr: np.ndarray, faces, media_id: str):
         items.append(
             {"id": idx, "x": int(x), "y": int(y), "w": int(w), "h": int(h), "file": crop_name}
         )
-    meta_path = PREVIEW_DIR / f"{media_id}_faces.json"
+    meta_path = METADATA_DIR / f"{media_id}_faces.json"
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(items, f)
     return items
 
 
 def _load_faces_metadata(media_id: str):
-    meta_path = PREVIEW_DIR / f"{media_id}_faces.json"
+    meta_path = METADATA_DIR / f"{media_id}_faces.json"
     if not meta_path.exists():
         return []
     with open(meta_path, "r", encoding="utf-8") as f:
@@ -449,12 +494,19 @@ def upload():
     file = request.files.get("media")
     if not file or not file.filename:
         abort(400, "未提供檔案")
+    original_filename = file.filename
     ext = Path(file.filename).suffix.lower()
     if ext not in ALLOWED_IMAGE_EXT and ext not in ALLOWED_VIDEO_EXT:
         abort(400, "檔案格式不支援")
 
-    media_id = uuid.uuid4().hex
-    saved_path = UPLOAD_DIR / f"{media_id}{ext}"
+    media_id = _generate_media_id()
+    # 根據檔案類型存到不同資料夾
+    if ext in ALLOWED_IMAGE_EXT:
+        saved_path = UPLOAD_IMAGE_DIR / f"{media_id}{ext}"
+        file_type = "image"
+    else:
+        saved_path = UPLOAD_VIDEO_DIR / f"{media_id}{ext}"
+        file_type = "video"
     file.save(saved_path)
 
     if _is_image(saved_path):
@@ -463,6 +515,19 @@ def upload():
         faces_info = _save_faces_metadata(image, faces, media_id)
         preview = draw_face_boxes(image, faces)
         preview_path = _save_preview(preview, media_id)
+        
+        # 記錄到資料庫
+        media_record = Media(
+            media_id=media_id,
+            original_filename=original_filename,
+            file_type=file_type,
+            upload_path=str(saved_path),
+            face_count=len(faces_info),
+            status="uploaded",
+        )
+        db.session.add(media_record)
+        db.session.commit()
+        
         return render_template(
             "options.html",
             media_id=media_id,
@@ -481,6 +546,19 @@ def upload():
     faces_info = _save_faces_metadata(frame, faces, media_id)
     preview = draw_face_boxes(frame, faces)
     preview_path = _save_preview(preview, media_id)
+    
+    # 記錄到資料庫
+    media_record = Media(
+        media_id=media_id,
+        original_filename=original_filename,
+        file_type=file_type,
+        upload_path=str(saved_path),
+        face_count=len(faces_info),
+        status="uploaded",
+    )
+    db.session.add(media_record)
+    db.session.commit()
+    
     return render_template(
         "options.html",
         media_id=media_id,
@@ -505,7 +583,10 @@ def process():
     if not media_id:
         abort(400, "缺少 media_id")
 
-    candidates = list(UPLOAD_DIR.glob(f"{media_id}.*"))
+    # 在圖片和影片資料夾中搜尋檔案
+    candidates = list(UPLOAD_IMAGE_DIR.glob(f"{media_id}.*"))
+    if not candidates:
+        candidates = list(UPLOAD_VIDEO_DIR.glob(f"{media_id}.*"))
     if not candidates:
         abort(404, "找不到檔案")
     src_path = candidates[0]
@@ -516,7 +597,7 @@ def process():
         overlay_ext = Path(overlay_file.filename).suffix.lower()
         if overlay_ext not in ALLOWED_IMAGE_EXT:
             abort(400, "圖片格式不支援")
-        overlay_path = UPLOAD_DIR / f"{media_id}_overlay{overlay_ext}"
+        overlay_path = UPLOAD_IMAGE_DIR / f"{media_id}_overlay{overlay_ext}"
         overlay_file.save(overlay_path)
 
     if _is_image(src_path):
@@ -538,10 +619,20 @@ def process():
 
 
         out_name = f"{media_id}_out.jpg"
-        out_path = OUTPUT_DIR / out_name
+        out_path = OUTPUT_IMAGE_DIR / out_name
         cv2.imwrite(str(out_path), output)
+        
+        # 更新資料庫
+        media_record = Media.query.filter_by(media_id=media_id).first()
+        if media_record:
+            media_record.output_path = str(out_path)
+            media_record.process_mode = mode
+            media_record.status = "processed"
+            media_record.processed_at = datetime.now()
+            db.session.commit()
+        
         return render_template(
-            "result.html", is_video=False, result_url=url_for("outputs", filename=out_name)
+            "result.html", is_video=False, result_url=url_for("output_images", filename=out_name)
         )
 
     # 影片處理
@@ -554,7 +645,7 @@ def process():
         cap.release()
         abort(400, "無法讀取影片影格")
     height, width = first_frame.shape[:2]
-    out_base = OUTPUT_DIR / f"{media_id}_out"
+    out_base = OUTPUT_VIDEO_DIR / f"{media_id}_out"
     writer, out_path = _open_video_writer(out_base, fps, (width, height))
     if writer is None:
         cap.release()
@@ -619,16 +710,31 @@ def process():
 
     cap.release()
     writer.release()
+    
+    # 更新資料庫
+    media_record = Media.query.filter_by(media_id=media_id).first()
+    if media_record:
+        media_record.output_path = str(out_path)
+        media_record.process_mode = mode
+        media_record.status = "processed"
+        media_record.processed_at = datetime.now()
+        db.session.commit()
+    
     return render_template(
         "result.html",
         is_video=True,
-        result_url=url_for("outputs", filename=out_path.name),
+        result_url=url_for("output_videos", filename=out_path.name),
     )
 
 
-@app.route("/outputs/<path:filename>")
-def outputs(filename):
-    return send_from_directory(OUTPUT_DIR, filename, as_attachment=False)
+@app.route("/outputs/images/<path:filename>")
+def output_images(filename):
+    return send_from_directory(OUTPUT_IMAGE_DIR, filename, as_attachment=False)
+
+
+@app.route("/outputs/videos/<path:filename>")
+def output_videos(filename):
+    return send_from_directory(OUTPUT_VIDEO_DIR, filename, as_attachment=False)
 
 
 @app.route("/previews/<path:filename>")
