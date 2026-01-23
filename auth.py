@@ -177,3 +177,111 @@ def profile():
     return render_template("profile.html", user=current_user)
 
 
+@auth_bp.route("/update_username", methods=["POST"])
+@login_required
+def update_username():
+    """更新使用者名稱"""
+    new_username = request.form.get("new_username", "").strip()
+    
+    if not new_username:
+        flash("使用者名稱不能為空", "error")
+        return redirect(url_for("auth.profile"))
+    
+    if len(new_username) > 80:
+        flash("使用者名稱不能超過 80 個字元", "error")
+        return redirect(url_for("auth.profile"))
+    
+    try:
+        current_user.username = new_username
+        db.session.commit()
+        flash("使用者名稱已更新！", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"更新失敗：{str(e)}", "error")
+    
+    return redirect(url_for("auth.profile"))
+
+
+@auth_bp.route("/update_email", methods=["POST"])
+@login_required
+def update_email():
+    """更新電子郵件"""
+    new_email = request.form.get("new_email", "").strip()
+    confirm_password = request.form.get("confirm_password", "").strip()
+    
+    if not new_email or not confirm_password:
+        flash("請填寫所有欄位", "error")
+        return redirect(url_for("auth.profile"))
+    
+    # 驗證密碼
+    if not current_user.check_password(confirm_password):
+        flash("密碼驗證失敗", "error")
+        return redirect(url_for("auth.profile"))
+    
+    # 驗證電子郵件格式
+    if not validate_email(new_email):
+        flash("電子郵件格式不正確", "error")
+        return redirect(url_for("auth.profile"))
+    
+    # 檢查電子郵件是否已被使用
+    existing_user = User.query.filter_by(email=new_email).first()
+    if existing_user and existing_user.id != current_user.id:
+        flash("此電子郵件已被其他帳號使用", "error")
+        return redirect(url_for("auth.profile"))
+    
+    try:
+        current_user.email = new_email
+        db.session.commit()
+        flash("電子郵件已更新！", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"更新失敗：{str(e)}", "error")
+    
+    return redirect(url_for("auth.profile"))
+
+
+@auth_bp.route("/change_password", methods=["POST"])
+@login_required
+def change_password():
+    """變更密碼"""
+    current_password = request.form.get("current_password", "").strip()
+    new_password = request.form.get("new_password", "").strip()
+    new_password_confirm = request.form.get("new_password_confirm", "").strip()
+    
+    if not current_password or not new_password or not new_password_confirm:
+        flash("請填寫所有欄位", "error")
+        return redirect(url_for("auth.profile"))
+    
+    # 驗證目前密碼
+    if not current_user.check_password(current_password):
+        flash("目前密碼錯誤", "error")
+        return redirect(url_for("auth.profile"))
+    
+    # 驗證新密碼強度
+    is_valid, message = validate_password(new_password)
+    if not is_valid:
+        flash(message, "error")
+        return redirect(url_for("auth.profile"))
+    
+    # 確認新密碼一致
+    if new_password != new_password_confirm:
+        flash("兩次輸入的新密碼不一致", "error")
+        return redirect(url_for("auth.profile"))
+    
+    # 檢查新密碼是否與舊密碼相同
+    if current_password == new_password:
+        flash("新密碼不能與目前密碼相同", "error")
+        return redirect(url_for("auth.profile"))
+    
+    try:
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash("密碼已更新！請使用新密碼登入", "success")
+        # 變更密碼後登出，要求重新登入
+        logout_user()
+        return redirect(url_for("auth.login"))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"更新失敗：{str(e)}", "error")
+        return redirect(url_for("auth.profile"))
+
