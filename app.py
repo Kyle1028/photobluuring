@@ -10,8 +10,9 @@ from pathlib import Path
 
 import cv2  # OpenCV：影像處理
 import numpy as np  # NumPy：數值運算
-from flask import Flask, render_template, request, send_from_directory, abort, url_for, redirect
+from flask import Flask, render_template, request, send_from_directory, abort, url_for, redirect, session
 from flask_login import login_required, current_user
+from flask_babel import Babel, gettext, lazy_gettext
 
 from auth import init_auth  # 認證系統
 from models import db, Media  # 資料庫模型
@@ -68,6 +69,14 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 # Session 密鑰（用於加密 Cookie）
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-please-change-in-production")
 
+# 多語言設定
+app.config["BABEL_DEFAULT_LOCALE"] = "zh_Hant_TW"  # 預設語言：繁體中文
+app.config["BABEL_TRANSLATION_DIRECTORIES"] = "translations"  # 翻譯檔案目錄
+app.config["LANGUAGES"] = {
+    "zh_Hant_TW": "繁體中文",
+    "en": "English"
+}
+
 # 郵件配置（預留功能）
 app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
@@ -78,6 +87,33 @@ db.init_app(app)
 
 # 初始化認證系統
 init_auth(app)
+
+# 初始化 Babel（多語言）
+babel = Babel(app)
+
+
+def get_locale():
+    """
+    取得使用者的語言偏好
+    優先順序：
+    1. URL 參數 ?lang=en
+    2. Session 中儲存的語言
+    3. 預設語言（繁體中文）
+    """
+    # 如果 URL 有指定語言，儲存到 session
+    if request.args.get('lang'):
+        session['lang'] = request.args.get('lang')
+    
+    # 從 session 取得語言
+    if 'lang' in session:
+        return session['lang']
+    
+    # 回傳預設語言（繁體中文）
+    return app.config['BABEL_DEFAULT_LOCALE']
+
+
+# 設定 Babel 的語言選擇函式
+babel.init_app(app, locale_selector=get_locale)
 
 # 建立資料表（如果不存在）
 with app.app_context():
@@ -896,6 +932,29 @@ def _save_preview(image_bgr: np.ndarray, name: str):
 
 
 
+@app.route("/set_language/<lang>")
+def set_language(lang):
+    """
+    切換語言
+    將選擇的語言儲存到 session
+    """
+    if lang in app.config['LANGUAGES']:
+        session['lang'] = lang
+    
+    # 取得來源頁面
+    referrer = request.referrer or url_for('index')
+    
+    # 如果來源是只接受 POST 的路由（如 /upload），則導向首頁
+    # 避免用 GET 方法訪問這些路由導致錯誤
+    post_only_routes = ['/upload']
+    for route in post_only_routes:
+        if route in referrer:
+            return redirect(url_for('index'))
+    
+    # 其他情況導回上一頁
+    return redirect(referrer)
+
+
 @app.route("/")
 def index():
     """
@@ -905,6 +964,40 @@ def index():
     if not current_user.is_authenticated:
         return redirect(url_for("auth.login"))
     return render_template("index.html")
+
+
+@app.route("/options/<media_id>")
+@login_required
+def options(media_id):
+    """
+    顯示處理選項頁面
+    從資料庫讀取已上傳的媒體資料
+    """
+    # 從資料庫查詢媒體記錄
+    media = Media.query.filter_by(media_id=media_id, user_id=current_user.id).first()
+    if not media:
+        abort(404, "找不到該檔案")
+    
+    # 讀取人臉資料
+    faces_json_path = METADATA_DIR / f"{media_id}_faces.json"
+    faces_info = []
+    if faces_json_path.exists():
+        with open(faces_json_path, "r", encoding="utf-8") as f:
+            faces_info = json.load(f)
+    
+    # 取得預覽圖片
+    preview_files = list(PREVIEW_DIR.glob(f"{media_id}_preview.*"))
+    preview_url = url_for("previews", filename=preview_files[0].name) if preview_files else ""
+    
+    is_video = media.file_type == "video"
+    
+    return render_template(
+        "options.html",
+        media_id=media_id,
+        is_video=is_video,
+        preview_url=preview_url,
+        faces=faces_info,
+    )
 
 
 @app.route("/upload", methods=["POST"])
@@ -917,7 +1010,7 @@ def upload():
     1. 接收使用者上傳的檔案
     2. 偵測人臉並標記位置
     3. 儲存到資料庫
-    4. 顯示預覽頁面（options.html），讓使用者選擇處理方式
+    4. 重定向到 options 頁面
     """
     # 步驟 1：取得上傳的檔案
     file = request.files.get("media")
@@ -953,7 +1046,7 @@ def upload():
         _, faces = _detect_landmarks_bgr(image, face_detector, None)
         faces_info = _save_faces_metadata(image, faces, media_id)
         preview = draw_face_boxes(image, faces)
-        preview_path = _save_preview(preview, media_id)
+        preview_path = _save_preview(preview, f"{media_id}_preview")
         
         media_record = Media(
             media_id=media_id,
@@ -967,13 +1060,8 @@ def upload():
         db.session.add(media_record)
         db.session.commit()
         
-        return render_template(
-            "options.html",
-            media_id=media_id,
-            is_video=False,
-            preview_url=url_for("previews", filename=preview_path.name),
-            faces=faces_info,
-        )
+        # 重定向到 options 頁面
+        return redirect(url_for("options", media_id=media_id))
 
     cap = cv2.VideoCapture(str(saved_path))
     ok, frame = cap.read()
@@ -985,7 +1073,7 @@ def upload():
     _, faces = _detect_landmarks_bgr(frame, face_detector, None)
     faces_info = _save_faces_metadata(frame, faces, media_id)
     preview = draw_face_boxes(frame, faces)
-    preview_path = _save_preview(preview, media_id)
+    preview_path = _save_preview(preview, f"{media_id}_preview")
     
     media_record = Media(
         media_id=media_id,
@@ -999,12 +1087,38 @@ def upload():
     db.session.add(media_record)
     db.session.commit()
     
+    # 重定向到 options 頁面
+    return redirect(url_for("options", media_id=media_id))
+
+
+@app.route("/result/<media_id>")
+@login_required
+def result(media_id):
+    """
+    顯示處理結果頁面
+    從資料庫讀取已處理的媒體資料
+    """
+    # 從資料庫查詢媒體記錄
+    media = Media.query.filter_by(media_id=media_id, user_id=current_user.id).first()
+    if not media:
+        abort(404, "找不到該檔案")
+    
+    if media.status != "processed" or not media.output_path:
+        abort(400, "檔案尚未處理完成")
+    
+    # 取得結果檔案 URL
+    is_video = media.file_type == "video"
+    output_filename = Path(media.output_path).name
+    
+    if is_video:
+        result_url = url_for("output_videos", filename=output_filename)
+    else:
+        result_url = url_for("output_images", filename=output_filename)
+    
     return render_template(
-        "options.html",
-        media_id=media_id,
-        is_video=True,
-        preview_url=url_for("previews", filename=preview_path.name),
-        faces=faces_info,
+        "result.html",
+        is_video=is_video,
+        result_url=result_url,
     )
 
 
@@ -1020,7 +1134,7 @@ def process():
     2. 載入原始檔案
     3. 根據模式套用效果（馬賽克/遮眼/替換）
     4. 儲存處理後的檔案
-    5. 顯示結果頁面
+    5. 重定向到結果頁面
     """
     # 步驟 1：取得處理參數
     media_id = request.form.get("media_id", "").strip()
@@ -1083,9 +1197,8 @@ def process():
             media_record.processed_at = datetime.now()
             db.session.commit()
         
-        return render_template(
-            "result.html", is_video=False, result_url=url_for("output_images", filename=out_name)
-        )
+        # 重定向到結果頁面
+        return redirect(url_for("result", media_id=media_id))
 
     # 影片處理
     cap = cv2.VideoCapture(str(src_path))
@@ -1170,11 +1283,8 @@ def process():
         media_record.processed_at = datetime.now()
         db.session.commit()
     
-    return render_template(
-        "result.html",
-        is_video=True,
-        result_url=url_for("output_videos", filename=out_path.name),
-    )
+    # 重定向到結果頁面
+    return redirect(url_for("result", media_id=media_id))
 
 
 @app.route("/outputs/images/<path:filename>")

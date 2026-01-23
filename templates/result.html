@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>處理完成 - Photo Blurring</title>
+    <title>{{ _('處理完成') }} - Photo Blurring</title>
     <style>
       * {
         margin: 0;
@@ -185,34 +185,35 @@
     <div class="navbar">
       <div class="navbar-brand">Photo Blurring</div>
       <div class="navbar-user">
+        {% include '_language_switcher.html' %}
         <span class="user-email">👤 {{ current_user.email }}</span>
-        <a href="{{ url_for('auth.profile') }}" class="nav-link">個人資料</a>
-        <a href="{{ url_for('auth.logout') }}" class="btn-logout">登出</a>
+        <a href="{{ url_for('auth.profile') }}" class="nav-link">{{ _('個人資料') }}</a>
+        <a href="{{ url_for('auth.logout') }}" class="btn-logout">{{ _('登出') }}</a>
       </div>
     </div>
 
     <!-- 主內容 -->
     <div class="container">
       <div class="card">
-        <h2> 處理完成</h2>
+        <h2> {{ _('處理完成') }}</h2>
 
         
         <div class="result-container">
           {% if is_video %}
             <video controls src="{{ result_url }}">
-              您的瀏覽器不支援影片播放
+              {{ _('您的瀏覽器不支援影片播放') }}
             </video>
           {% else %}
-            <img src="{{ result_url }}" alt="處理結果" />
+            <img src="{{ result_url }}" alt="{{ _('處理結果') }}" />
           {% endif %}
         </div>
         
         <div class="actions">
           <a href="{{ result_url }}" download class="btn btn-download">
-             下載結果
+             {{ _('下載結果') }}
           </a>
           <a href="/" class="btn btn-primary">
-             處理新檔案
+             {{ _('處理新檔案') }}
           </a>
 
           </a>

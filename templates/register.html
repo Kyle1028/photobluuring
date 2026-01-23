@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>註冊 - Photo Blurring</title>
+    <title>{{ _('註冊') }} - Photo Blurring</title>
     <style>
         * {
             margin: 0;
@@ -150,8 +150,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>建立帳號</h1>
-        <p class="subtitle">使用電子郵件註冊 Photo Blurring</p>
+        <div style="text-align: right; margin-bottom: 20px;">
+            {% include '_language_switcher.html' %}
+        </div>
+        <h1>{{ _('建立帳號') }}</h1>
+        <p class="subtitle">{{ _('使用電子郵件註冊 Photo Blurring') }}</p>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -165,35 +168,35 @@
         
         <form method="POST" action="{{ url_for('auth.register') }}">
             <div class="form-group">
-                <label for="email">電子郵件 <span class="required">*</span></label>
+                <label for="email">{{ _('電子郵件') }} <span class="required">*</span></label>
                 <input type="email" id="email" name="email" required 
-                       placeholder="email@example.com">
+                       placeholder="{{ _('email@example.com') }}">
             </div>
             
             <div class="form-group">
-                <label for="username">使用者名稱</label>
+                <label for="username">{{ _('使用者名稱') }}</label>
                 <input type="text" id="username" name="username" 
-                       placeholder="預設使用電子郵件">
+                       placeholder="{{ _('預設使用電子郵件') }}">
             </div>
             
             <div class="form-group">
-                <label for="password">密碼 <span class="required">*</span></label>
+                <label for="password">{{ _('密碼') }} <span class="required">*</span></label>
                 <input type="password" id="password" name="password" required 
-                       placeholder="至少 8 個字元">
-                <p class="password-hint">密碼必須包含英文字母和數字</p>
+                       placeholder="{{ _('至少 8 個字元') }}">
+                <p class="password-hint">{{ _('密碼必須包含英文字母和數字') }}</p>
             </div>
             
             <div class="form-group">
-                <label for="password_confirm">確認密碼 <span class="required">*</span></label>
+                <label for="password_confirm">{{ _('確認密碼') }} <span class="required">*</span></label>
                 <input type="password" id="password_confirm" name="password_confirm" required 
-                       placeholder="再次輸入密碼">
+                       placeholder="{{ _('再次輸入密碼') }}">
             </div>
             
-            <button type="submit" class="btn">註冊</button>
+            <button type="submit" class="btn">{{ _('註冊') }}</button>
         </form>
         
         <div class="login-link">
-            已經有帳號了？<a href="{{ url_for('auth.login') }}">立即登入</a>
+            {{ _('已經有帳號了？') }}<a href="{{ url_for('auth.login') }}">{{ _('立即登入') }}</a>
         </div>
     </div>
     
@@ -202,9 +205,11 @@
         const password = document.getElementById('password');
         const passwordConfirm = document.getElementById('password_confirm');
         
+        const mismatchText = "{{ _('密碼不一致') }}";
+        
         passwordConfirm.addEventListener('input', function() {
             if (password.value !== passwordConfirm.value) {
-                passwordConfirm.setCustomValidity('密碼不一致');
+                passwordConfirm.setCustomValidity(mismatchText);
             } else {
                 passwordConfirm.setCustomValidity('');
             }
@@ -212,7 +217,7 @@
         
         password.addEventListener('input', function() {
             if (passwordConfirm.value && password.value !== passwordConfirm.value) {
-                passwordConfirm.setCustomValidity('密碼不一致');
+                passwordConfirm.setCustomValidity(mismatchText);
             } else {
                 passwordConfirm.setCustomValidity('');
             }

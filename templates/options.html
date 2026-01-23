@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>選擇處理方式 - Photo Blurring</title>
+    <title>{{ _('選擇處理方式') }} - Photo Blurring</title>
     <style>
       * {
         margin: 0;
@@ -341,25 +341,26 @@
     <div class="navbar">
       <div class="navbar-brand">Photo Blurring</div>
       <div class="navbar-user">
+        {% include '_language_switcher.html' %}
         <span class="user-email">👤 {{ current_user.email }}</span>
-        <a href="{{ url_for('auth.profile') }}" class="nav-link">個人資料</a>
-        <a href="{{ url_for('auth.logout') }}" class="btn-logout">登出</a>
+        <a href="{{ url_for('auth.profile') }}" class="nav-link">{{ _('個人資料') }}</a>
+        <a href="{{ url_for('auth.logout') }}" class="btn-logout">{{ _('登出') }}</a>
       </div>
     </div>
 
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loading-overlay">
       <div class="spinner"></div>
-      <div class="loading-text" id="loading-text">正在處理中，請稍候...</div>
+      <div class="loading-text" id="loading-text">{{ _('正在處理中，請稍候...') }}</div>
     </div>
 
     <!-- 主內容 -->
     <div class="container">
       <div class="card">
-        <h2>人臉偵測結果</h2>
+        <h2>{{ _('人臉偵測結果') }}</h2>
         
         <div class="preview-section">
-          <div class="preview-title"> 偵測到 {{ faces|length if faces else 0 }} 張人臉（點擊人臉框選擇/取消）</div>
+          <div class="preview-title"> {{ _('偵測到') }} {{ faces|length if faces else 0 }} {{ _('張人臉（點擊人臉框選擇/取消）') }}</div>
           {% if faces and faces|length > 0 %}
             <div class="image-container" id="image-container">
               <img src="{{ preview_url }}" alt="face preview" id="preview-image" />
@@ -367,7 +368,7 @@
             </div>
           {% else %}
             <img src="{{ preview_url }}" alt="face preview" />
-            <div class="hint" style="margin-top: 15px;"> 沒有偵測到人臉，將套用在整張圖/影片上</div>
+            <div class="hint" style="margin-top: 15px;"> {{ _('沒有偵測到人臉，將套用在整張圖/影片上') }}</div>
           {% endif %}
         </div>
         
@@ -384,33 +385,33 @@
           {% endif %}
           
           <div class="options-section">
-            <div class="options-title"> 選擇處理方式</div>
+            <div class="options-title"> {{ _('選擇處理方式') }}</div>
             
             <label>
               <input type="radio" name="mode" value="mosaic" checked />
-              <span>馬賽克整張人臉</span>
+              <span>{{ _('馬賽克整張人臉') }}</span>
             </label>
             
             <label>
               <input type="radio" name="mode" value="eyes" />
-              <span>遮眼處理（白條遮蔽）</span>
+              <span>{{ _('遮眼處理（白條遮蔽）') }}</span>
             </label>
             
             <label>
               <input type="radio" name="mode" value="replace" />
-              <span>人臉替換（上傳自訂圖片）</span>
+              <span>{{ _('人臉替換（上傳自訂圖片）') }}</span>
             </label>
             
             <div id="overlay-row" style="display: none;">
               <input type="file" name="overlay" accept="image/*" />
-              <div class="hint">請上傳要替換的圖片（PNG、JPG、WEBP）</div>
+              <div class="hint">{{ _('請上傳要替換的圖片（PNG、JPG、WEBP）') }}</div>
             </div>
           </div>
           
-          <button type="submit"> 開始處理{{ "影片" if is_video else "照片" }}</button>
+          <button type="submit"> {{ _('開始處理') }}{{ _('影片') if is_video else _('照片') }}</button>
           
           <div style="text-align: center;">
-            <a href="/" class="back-link">← 返回上傳</a>
+            <a href="/" class="back-link">← {{ _('返回上傳') }}</a>
           </div>
         </form>
       </div>
@@ -435,9 +436,9 @@
       // Show loading overlay on submit
       form.addEventListener("submit", () => {
         if (isVideo) {
-          loadingText.textContent = "正在處理影片中，影片較大可能需要較長時間，請耐心等候...";
+          loadingText.textContent = "{{ _('正在處理影片中，影片較大可能需要較長時間，請耐心等候...') }}";
         } else {
-          loadingText.textContent = "正在處理照片中，請稍候...";
+          loadingText.textContent = "{{ _('正在處理照片中，請稍候...') }}";
         }
         loadingOverlay.classList.add("active");
       });

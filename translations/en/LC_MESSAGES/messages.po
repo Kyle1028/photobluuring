@@ -1,0 +1,258 @@
+# English translations for Photo Blurring
+msgid ""
+msgstr ""
+"Project-Id-Version: Photo Blurring 1.0\n"
+"POT-Creation-Date: 2026-01-23 10:00+0800\n"
+"PO-Revision-Date: 2026-01-23 10:00+0800\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Login Page
+msgid "登入"
+msgstr "Login"
+
+msgid "歡迎回來"
+msgstr "Welcome Back"
+
+msgid "登入您的 Photo Blurring 帳號"
+msgstr "Login to your Photo Blurring account"
+
+msgid "電子郵件"
+0
+msgstr "Email"
+
+msgid "email@example.com"
+msgstr "email@example.com"
+
+msgid "密碼"
+msgstr "Password"
+
+msgid "輸入您的密碼"
+msgstr "Enter your password"
+
+msgid "記住我"
+msgstr "Remember me"
+
+msgid "忘記密碼？"
+msgstr "Forgot password?"
+
+msgid "還沒有帳號？"
+msgstr "Don't have an account?"
+
+msgid "立即註冊"
+msgstr "Sign up now"
+
+# Common
+msgid "登出"
+msgstr "Logout"
+
+msgid "個人資料"
+msgstr "Profile"
+
+msgid "返回首頁"
+msgstr "Back to Home"
+
+# Index Page
+msgid "人臉隱私處理"
+msgstr "Face Privacy Protection"
+
+msgid "上傳照片或影片"
+msgstr "Upload Photo or Video"
+
+msgid "人臉偵測靈敏度"
+msgstr "Face Detection Sensitivity"
+
+msgid "低"
+msgstr "Low"
+
+msgid "中等"
+msgstr "Medium"
+
+msgid "高"
+msgstr "High"
+
+msgid "如果偵測不到人臉，請調整靈敏度"
+msgstr "Adjust sensitivity if face detection fails"
+
+msgid "上傳並偵測人臉"
+msgstr "Upload and Detect Faces"
+
+msgid "支援格式：JPG / PNG / WEBP / MP4 / WEBM / MOV"
+msgstr "Supported formats: JPG / PNG / WEBP / MP4 / WEBM / MOV"
+
+msgid "正在上傳並偵測人臉，請稍候..."
+msgstr "Uploading and detecting faces, please wait..."
+
+# Profile Page
+msgid "帳號資訊"
+msgstr "Account Information"
+
+msgid "使用者名稱"
+msgstr "Username"
+
+msgid "註冊時間"
+msgstr "Registration Date"
+
+msgid "最後登入"
+msgstr "Last Login"
+
+msgid "帳號狀態"
+msgstr "Account Status"
+
+msgid "啟用中"
+msgstr "Active"
+
+msgid "已停用"
+msgstr "Disabled"
+
+msgid "修改使用者名稱"
+msgstr "Change Username"
+
+msgid "新使用者名稱"
+msgstr "New Username"
+
+msgid "最多 80 個字元"
+msgstr "Maximum 80 characters"
+
+msgid "更新名稱"
+msgstr "Update Name"
+
+msgid "修改電子郵件"
+msgstr "Change Email"
+
+msgid "新電子郵件"
+msgstr "New Email"
+
+msgid "確認密碼"
+msgstr "Confirm Password"
+
+msgid "確認密碼（安全驗證）"
+msgstr "Confirm Password (Security Verification)"
+
+msgid "請輸入目前密碼"
+msgstr "Enter your current password"
+
+msgid "修改電子郵件需要輸入密碼"
+msgstr "Password required to change email"
+
+msgid "為了安全起見，修改電子郵件需要驗證密碼"
+msgstr "For security, password verification is required to change email"
+
+msgid "更新電子郵件"
+msgstr "Update Email"
+
+msgid "變更密碼"
+msgstr "Change Password"
+
+msgid "目前密碼"
+msgstr "Current Password"
+
+msgid "新密碼"
+msgstr "New Password"
+
+msgid "至少 8 個字元，包含英文和數字"
+msgstr "At least 8 characters, with letters and numbers"
+
+msgid "至少 8 個字元，必須包含英文字母和數字"
+msgstr "At least 8 characters, must include letters and numbers"
+
+msgid "確認新密碼"
+msgstr "Confirm New Password"
+
+msgid "再次輸入新密碼"
+msgstr "Enter new password again"
+
+msgid "更新密碼"
+msgstr "Update Password"
+
+# Register Page
+msgid "註冊"
+msgstr "Register"
+
+msgid "建立帳號"
+msgstr "Create Account"
+
+msgid "使用電子郵件註冊 Photo Blurring"
+msgstr "Register for Photo Blurring with email"
+
+msgid "預設使用電子郵件"
+msgstr "Default to email"
+
+msgid "至少 8 個字元"
+msgstr "At least 8 characters"
+
+msgid "密碼必須包含英文字母和數字"
+msgstr "Password must contain letters and numbers"
+
+msgid "密碼不一致"
+msgstr "Passwords do not match"
+
+msgid "已經有帳號了？"
+msgstr "Already have an account?"
+
+# Options Page
+msgid "選擇處理方式"
+msgstr "Select Processing Method"
+
+msgid "人臉偵測結果"
+msgstr "Face Detection Results"
+
+msgid "偵測到"
+msgstr "Detected"
+
+msgid "張人臉（點擊人臉框選擇/取消）"
+msgstr "faces (click to select/deselect)"
+
+msgid "沒有偵測到人臉，將套用在整張圖/影片上"
+msgstr "No faces detected, will apply to entire image/video"
+
+msgid "馬賽克整張人臉"
+msgstr "Mosaic entire face"
+
+msgid "遮眼處理（白條遮蔽）"
+msgstr "Eye cover (white bar)"
+
+msgid "人臉替換（上傳自訂圖片）"
+msgstr "Face replacement (upload custom image)"
+
+msgid "請上傳要替換的圖片（PNG、JPG、WEBP）"
+msgstr "Please upload replacement image (PNG, JPG, WEBP)"
+
+msgid "開始處理"
+msgstr "Start Processing"
+
+msgid "照片"
+msgstr "Photo"
+
+msgid "影片"
+msgstr "Video"
+
+msgid "返回上傳"
+msgstr "Back to Upload"
+
+msgid "正在處理中，請稍候..."
+msgstr "Processing, please wait..."
+
+msgid "正在處理影片中，影片較大可能需要較長時間，請耐心等候..."
+msgstr "Processing video, large files may take longer, please be patient..."
+
+msgid "正在處理照片中，請稍候..."
+msgstr "Processing photo, please wait..."
+
+# Result Page
+msgid "處理完成"
+msgstr "Processing Complete"
+
+msgid "您的瀏覽器不支援影片播放"
+msgstr "Your browser does not support video playback"
+
+msgid "處理結果"
+msgstr "Processing Result"
+
+msgid "下載結果"
+msgstr "Download Result"
+
+msgid "處理新檔案"
+msgstr "Process New File"

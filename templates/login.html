@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登入 - Photo Blurring</title>
+    <title>{{ _('登入') }} - Photo Blurring</title>
     <style>
         * {
             margin: 0;
@@ -178,8 +178,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>歡迎回來</h1>
-        <p class="subtitle">登入您的 Photo Blurring 帳號</p>
+        <div style="text-align: right; margin-bottom: 20px;">
+            {% include '_language_switcher.html' %}
+        </div>
+        <h1>{{ _('歡迎回來') }}</h1>
+        <p class="subtitle">{{ _('登入您的 Photo Blurring 帳號') }}</p>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -193,32 +196,32 @@
         
         <form method="POST" action="{{ url_for('auth.login') }}">
             <div class="form-group">
-                <label for="email">電子郵件</label>
+                <label for="email">{{ _('電子郵件') }}</label>
                 <input type="email" id="email" name="email" required 
-                       placeholder="email@example.com">
+                       placeholder="{{ _('email@example.com') }}">
             </div>
             
             <div class="form-group">
-                <label for="password">密碼</label>
+                <label for="password">{{ _('密碼') }}</label>
                 <input type="password" id="password" name="password" required 
-                       placeholder="輸入您的密碼">
+                       placeholder="{{ _('輸入您的密碼') }}">
             </div>
             
             <div class="form-options">
                 <div class="remember-me">
                     <input type="checkbox" id="remember" name="remember">
-                    <label for="remember" style="margin: 0; font-weight: normal;">記住我</label>
+                    <label for="remember" style="margin: 0; font-weight: normal;">{{ _('記住我') }}</label>
                 </div>
                 <div class="forgot-password">
-                    <a href="#">忘記密碼？</a>
+                    <a href="#">{{ _('忘記密碼？') }}</a>
                 </div>
             </div>
             
-            <button type="submit" class="btn">登入</button>
+            <button type="submit" class="btn">{{ _('登入') }}</button>
         </form>
         
         <div class="register-link">
-            還沒有帳號？<a href="{{ url_for('auth.register') }}">立即註冊</a>
+            {{ _('還沒有帳號？') }}<a href="{{ url_for('auth.register') }}">{{ _('立即註冊') }}</a>
         </div>
     </div>
 </body>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>人臉隱私處理 - Photo Blurring</title>
+    <title>{{ _('人臉隱私處理') }} - Photo Blurring</title>
     <style>
       * {
         margin: 0;
@@ -201,22 +201,23 @@
     <div class="navbar">
       <div class="navbar-brand">Photo Blurring</div>
       <div class="navbar-user">
+        {% include '_language_switcher.html' %}
         <span class="user-email">👤 {{ current_user.email }}</span>
-        <a href="{{ url_for('auth.profile') }}" class="nav-link">個人資料</a>
-        <a href="{{ url_for('auth.logout') }}" class="btn-logout">登出</a>
+        <a href="{{ url_for('auth.profile') }}" class="nav-link">{{ _('個人資料') }}</a>
+        <a href="{{ url_for('auth.logout') }}" class="btn-logout">{{ _('登出') }}</a>
       </div>
     </div>
 
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loading-overlay">
       <div class="spinner"></div>
-      <div class="loading-text">正在上傳並偵測人臉，請稍候...</div>
+      <div class="loading-text">{{ _('正在上傳並偵測人臉，請稍候...') }}</div>
     </div>
 
     <!-- 主內容 -->
     <div class="container">
       <div class="card">
-        <h2>上傳照片或影片</h2>
+        <h2>{{ _('上傳照片或影片') }}</h2>
         <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
           <div class="row">
             <input type="file" name="media" accept="image/*,video/*" required />
@@ -224,7 +225,7 @@
           
           <div class="row">
             <label style="display: block; margin-bottom: 10px; color: #333; font-weight: 600;">
-            人臉偵測靈敏度
+            {{ _('人臉偵測靈敏度') }}
             </label>
             <input type="range" id="sensitivity" name="sensitivity" 
                    min="0.3" max="0.9" step="0.1" value="0.6"
@@ -253,20 +254,20 @@
               }
             </style>
             <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: #666;">
-              <span>低 </span>
-              <span id="sensitivityValue" style="font-weight: 600; color: #333;">中等 </span>
-              <span>高 </span>
+              <span>{{ _('低') }} </span>
+              <span id="sensitivityValue" style="font-weight: 600; color: #333;">{{ _('中等') }} </span>
+              <span>{{ _('高') }} </span>
             </div>
             <div class="hint" style="margin-top: 8px; text-align: left;">
-            如果偵測不到人臉，請調整靈敏度
+            {{ _('如果偵測不到人臉，請調整靈敏度') }}
             </div>
           </div>
           
           <div class="row">
-            <button type="submit">上傳並偵測人臉</button>
+            <button type="submit">{{ _('上傳並偵測人臉') }}</button>
           </div>
           <div class="hint">
-            支援格式：JPG / PNG / WEBP / MP4 / WEBM / MOV
+            {{ _('支援格式：JPG / PNG / WEBP / MP4 / WEBM / MOV') }}
           </div>
         </form>
       </div>
@@ -283,14 +284,21 @@
       const sensitivitySlider = document.getElementById("sensitivity");
       const sensitivityValue = document.getElementById("sensitivityValue");
       
+      // 翻譯文字
+      const translations = {
+        low: "{{ _('低') }}",
+        medium: "{{ _('中等') }}",
+        high: "{{ _('高') }}"
+      };
+      
       // 初始化顯示
-      sensitivityValue.textContent = `中等`;
+      sensitivityValue.textContent = translations.medium;
       
       sensitivitySlider.addEventListener("input", (e) => {
         const value = parseFloat(e.target.value);
-        let label = "中等";
-        if (value <= 0.4) label = "低";
-        else if (value >= 0.7) label = "高";
+        let label = translations.medium;
+        if (value <= 0.4) label = translations.low;
+        else if (value >= 0.7) label = translations.high;
         sensitivityValue.textContent = `${label} (${value})`;
       });
     </script>

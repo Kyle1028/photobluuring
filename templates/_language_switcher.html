@@ -1,0 +1,27 @@
+<!-- 語言切換元件 -->
+<div class="language-switcher" style="display: inline-flex; gap: 10px; align-items: center;">
+    {% if session.get('lang') == 'en' or request.args.get('lang') == 'en' %}
+        <a href="{{ url_for('set_language', lang='zh_Hant_TW') }}" 
+           style="text-decoration: none; color: #666; font-size: 14px; padding: 5px 10px; border-radius: 4px; transition: all 0.3s;">
+            🇹🇼 中文
+        </a>
+        <span style="color: #667eea; font-weight: 600; font-size: 14px; padding: 5px 10px; background: #f0f2ff; border-radius: 4px;">
+            🇬🇧 English
+        </span>
+    {% else %}
+        <span style="color: #667eea; font-weight: 600; font-size: 14px; padding: 5px 10px; background: #f0f2ff; border-radius: 4px;">
+            🇹🇼 中文
+        </span>
+        <a href="{{ url_for('set_language', lang='en') }}" 
+           style="text-decoration: none; color: #666; font-size: 14px; padding: 5px 10px; border-radius: 4px; transition: all 0.3s;">
+            🇬🇧 English
+        </a>
+    {% endif %}
+</div>
+
+<style>
+.language-switcher a:hover {
+    background: #e9ecef;
+    color: #333;
+}
+</style>
