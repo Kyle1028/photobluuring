@@ -20,7 +20,7 @@ msgid "登入您的 Photo Blurring 帳號"
 msgstr "Login to your Photo Blurring account"
 
 msgid "電子郵件"
-0
+
 msgstr "Email"
 
 msgid "email@example.com"

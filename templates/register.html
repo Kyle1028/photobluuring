@@ -141,14 +141,48 @@
             border: 1px solid #fcc;
         }
         
-        .alert-success {
-            background-color: #efe;
-            color: #3c3;
-            border: 1px solid #cfc;
+      .alert-success {
+        background-color: #efe;
+        color: #3c3;
+        border: 1px solid #cfc;
+      }
+      
+      /* 手機版響應式設計 */
+      @media (max-width: 768px) {
+        body {
+          padding: 10px;
         }
+        
+        .container {
+          padding: 30px 20px;
+        }
+        
+        h1 {
+          font-size: 24px;
+        }
+        
+        .subtitle {
+          font-size: 13px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .container {
+          padding: 25px 15px;
+          max-width: 100%;
+        }
+        
+        h1 {
+          font-size: 22px;
+        }
+        
+        .btn {
+          font-size: 15px;
+        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
         <div style="text-align: right; margin-bottom: 20px;">
             {% include '_language_switcher.html' %}

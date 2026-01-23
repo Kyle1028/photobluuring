@@ -178,6 +178,72 @@
         background: #229954;
         box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
       }
+      
+      /* 手機版響應式設計 */
+      @media (max-width: 768px) {
+        .navbar {
+          padding: 10px 15px;
+          flex-wrap: wrap;
+        }
+        
+        .navbar-brand {
+          font-size: 18px;
+        }
+        
+        .navbar-user {
+          gap: 10px;
+          font-size: 12px;
+          flex-wrap: wrap;
+        }
+        
+        .user-email {
+          display: none;
+        }
+        
+        .nav-link, .btn-logout {
+          padding: 8px 12px;
+          font-size: 12px;
+        }
+        
+        .card {
+          padding: 25px 15px;
+        }
+        
+        h2 {
+          font-size: 22px;
+        }
+        
+        .actions {
+          flex-direction: column;
+          gap: 10px;
+        }
+        
+        .btn {
+          width: 100%;
+          padding: 12px 20px;
+          font-size: 15px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .navbar {
+          padding: 10px;
+        }
+        
+        .navbar-user {
+          width: 100%;
+          justify-content: flex-end;
+          margin-top: 10px;
+        }
+        
+        .card {
+          padding: 20px 10px;
+        }
+        
+        h2 {
+          font-size: 20px;
+        }
+      }
     </style>
   </head>
   <body>
