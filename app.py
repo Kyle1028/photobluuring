@@ -545,7 +545,7 @@ def upload():
     
     try:
         sensitivity = float(request.form.get("sensitivity", 0.6))
-        sensitivity = max(0.3, min(0.9, sensitivity))  # 限制範圍在 0.3-0.9
+        sensitivity = max(0.3, min(0.9, sensitivity))  
     except:
         sensitivity = 0.6
     
@@ -565,7 +565,6 @@ def upload():
 
     if _is_image(saved_path):
         image = cv2.imread(str(saved_path))
-        # 使用自訂靈敏度創建偵測器
         face_detector = _create_face_landmarker_image(sensitivity)
         _, faces = _detect_landmarks_bgr(image, face_detector, None)
         faces_info = _save_faces_metadata(image, faces, media_id)
@@ -579,7 +578,7 @@ def upload():
             upload_path=str(saved_path),
             face_count=len(faces_info),
             status="uploaded",
-            user_id=current_user.id,  # 關聯使用者
+            user_id=current_user.id,  
         )
         db.session.add(media_record)
         db.session.commit()

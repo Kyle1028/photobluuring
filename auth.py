@@ -2,7 +2,6 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User
-# 移除郵件驗證相關 import
 import re
 
 
