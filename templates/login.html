@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('登入') }} - Photo Blurring</title>
+    <link rel="icon" type="image/png" href="/static/logo-icon.png" />
+    <title>{{ _('登入') }} - 商景 Bizeview</title>
     <style>
         * {
             margin: 0;
@@ -200,6 +201,10 @@
                 max-width: 100%;
             }
             
+            .container img {
+                height: 40px !important;
+            }
+            
             h1 {
                 font-size: 22px;
             }
@@ -215,8 +220,11 @@
         <div style="text-align: right; margin-bottom: 20px;">
             {% include '_language_switcher.html' %}
         </div>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <img src="/static/logo.png" alt="商景 Bizeview" style="height: 50px; max-width: 100%;">
+        </div>
         <h1>{{ _('歡迎回來') }}</h1>
-        <p class="subtitle">{{ _('登入您的 Photo Blurring 帳號') }}</p>
+        <p class="subtitle">{{ _('登入您的商景 Bizeview 帳號') }}</p>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

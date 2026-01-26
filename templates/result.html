@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ _('處理完成') }} - Photo Blurring</title>
+    <link rel="icon" type="image/png" href="/static/logo-icon.png" />
+    <title>{{ _('處理完成') }} - 商景 Bizeview</title>
     <style>
       * {
         margin: 0;
@@ -121,7 +122,7 @@
       img, video {
         max-width: 100%;
         border-radius: 15px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0);
       }
       
       video {
@@ -190,6 +191,10 @@
           font-size: 18px;
         }
         
+        .navbar-brand img {
+          height: 32px !important;
+        }
+        
         .navbar-user {
           gap: 10px;
           font-size: 12px;
@@ -249,7 +254,11 @@
   <body>
     <!-- 導航列 -->
     <div class="navbar">
-      <div class="navbar-brand">Photo Blurring</div>
+      <div class="navbar-brand">
+        <a href="/" style="display: inline-block;">
+          <img src="/static/logo.png" alt="商景 Bizeview" style="height: 40px; vertical-align: middle;">
+        </a>
+      </div>
       <div class="navbar-user">
         {% include '_language_switcher.html' %}
         <span class="user-email">👤 {{ current_user.email }}</span>

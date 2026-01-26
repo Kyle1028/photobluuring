@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('註冊') }} - Photo Blurring</title>
+    <link rel="icon" type="image/png" href="/static/logo-icon.png" />
+    <title>{{ _('註冊') }} - 商景 Bizeview</title>
     <style>
         * {
             margin: 0;
@@ -166,20 +167,24 @@
         }
       }
       
-      @media (max-width: 480px) {
-        .container {
-          padding: 25px 15px;
-          max-width: 100%;
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px 15px;
+                max-width: 100%;
+            }
+            
+            .container img {
+                height: 40px !important;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            .btn {
+                font-size: 15px;
+            }
         }
-        
-        h1 {
-          font-size: 22px;
-        }
-        
-        .btn {
-          font-size: 15px;
-        }
-      }
     </style>
   </head>
   <body>
@@ -187,8 +192,11 @@
         <div style="text-align: right; margin-bottom: 20px;">
             {% include '_language_switcher.html' %}
         </div>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <img src="/static/logo.png" alt="商景 Bizeview" style="height: 50px; max-width: 100%;">
+        </div>
         <h1>{{ _('建立帳號') }}</h1>
-        <p class="subtitle">{{ _('使用電子郵件註冊 Photo Blurring') }}</p>
+        <p class="subtitle">{{ _('使用電子郵件註冊商景 Bizeview') }}</p>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ _('選擇處理方式') }} - Photo Blurring</title>
+    <link rel="icon" type="image/png" href="/static/logo-icon.png" />
+    <title>{{ _('選擇處理方式') }} - 商景 Bizeview</title>
     <style>
       * {
         margin: 0;
@@ -123,7 +124,7 @@
       img {
         max-width: 100%;
         border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0);
       }
       
       /* 圖片與人臉框 */
@@ -346,6 +347,10 @@
           font-size: 18px;
         }
         
+        .navbar-brand img {
+          height: 32px !important;
+        }
+        
         .navbar-user {
           gap: 10px;
           font-size: 12px;
@@ -425,7 +430,11 @@
   <body>
     <!-- 導航列 -->
     <div class="navbar">
-      <div class="navbar-brand">Photo Blurring</div>
+      <div class="navbar-brand">
+        <a href="/" style="display: inline-block;">
+          <img src="/static/logo.png" alt="商景 Bizeview" style="height: 40px; vertical-align: middle;">
+        </a>
+      </div>
       <div class="navbar-user">
         {% include '_language_switcher.html' %}
         <span class="user-email">👤 {{ current_user.email }}</span>
@@ -454,7 +463,8 @@
             </div>
           {% else %}
             <img src="{{ preview_url }}" alt="face preview" />
-            <div class="hint" style="margin-top: 15px;"> {{ _('沒有偵測到人臉，將套用在整張圖/影片上') }}</div>
+            <div class="hint" st
+            yle="margin-top: 15px;"> {{ _('沒有偵測到人臉，將套用在整張圖/影片上') }}</div>
           {% endif %}
         </div>
         

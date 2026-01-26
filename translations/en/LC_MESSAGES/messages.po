@@ -16,8 +16,8 @@ msgstr "Login"
 msgid "歡迎回來"
 msgstr "Welcome Back"
 
-msgid "登入您的 Photo Blurring 帳號"
-msgstr "Login to your Photo Blurring account"
+msgid "登入您的商景 Bizeview 帳號"
+msgstr "Login to your Bizeview account"
 
 msgid "電子郵件"
 
@@ -174,8 +174,8 @@ msgstr "Register"
 msgid "建立帳號"
 msgstr "Create Account"
 
-msgid "使用電子郵件註冊 Photo Blurring"
-msgstr "Register for Photo Blurring with email"
+msgid "使用電子郵件註冊商景 Bizeview"
+msgstr "Register for Bizeview with email"
 
 msgid "預設使用電子郵件"
 msgstr "Default to email"

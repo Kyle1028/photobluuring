@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('個人資料') }} - Photo Blurring</title>
+    <link rel="icon" type="image/png" href="/static/logo-icon.png" />
+    <title>{{ _('個人資料') }} - 商景 Bizeview</title>
     <style>
         * {
             margin: 0;
@@ -265,6 +266,10 @@
                 padding: 0;
             }
             
+            .header img {
+                height: 40px !important;
+            }
+            
             .profile-section {
                 padding: 15px 10px;
                 border-radius: 12px;
@@ -280,6 +285,9 @@
 <body>
     <div class="container">
         <div class="header">
+            <div style="margin-bottom: 20px; text-align: center;">
+                <img src="/static/logo.png" alt="商景 Bizeview" style="height: 50px; max-width: 100%; margin-bottom: 15px;">
+            </div>
             <div style="margin-bottom: 10px; text-align: right;">
                 {% include '_language_switcher.html' %}
             </div>
