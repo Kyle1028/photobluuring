@@ -16,6 +16,7 @@ from flask_babel import Babel, gettext, lazy_gettext
 
 from auth import init_auth  # 認證系統
 from models import db, Media  # 資料庫模型
+from media_processor import MediaProcessor  # 媒體處理模組
 
 # 匯入 MediaPipe（用於人臉偵測）
 try:
@@ -1168,30 +1169,30 @@ def process():
         overlay_path = UPLOAD_IMAGE_DIR / f"{media_id}_overlay{overlay_ext}"
         overlay_file.save(overlay_path)
 
-    if _is_image(src_path):
-        image = cv2.imread(str(src_path))
-        face_landmarks, faces = _detect_landmarks_bgr(image, FACE_LANDMARKER_IMAGE, None)
-        face_landmarks = _filter_landmarks_by_indices(face_landmarks, selected_ids)
-        faces = _filter_faces_by_indices(faces, selected_ids)
-        if mode == "mosaic":
-            output = apply_mosaic(image, faces)
-        elif mode == "eyes":
-            output, _ = apply_eye_cover(image, face_landmarks, prev_boxes=None)
-        elif mode == "replace":
-            if overlay_path is None:
-                abort(400, "請上傳替換圖片")
-            overlay = _load_overlay_rgba(overlay_path)
-            if overlay is None:
-                abort(400, "替換圖片讀取失敗")
-            output = apply_face_replace(image, faces, overlay)
-
-        out_name = f"{media_id}_out.jpg"
-        out_path = OUTPUT_IMAGE_DIR / out_name
-        cv2.imwrite(str(out_path), output)
+    # 使用模組化處理器處理媒體檔案
+    try:
+        # 建立處理器（使用預設靈敏度 0.6，可從 media_record 取得自訂值）
+        processor = MediaProcessor(sensitivity=0.6)
         
+        # 設定輸出路徑
+        if _is_image(src_path):
+            out_path = OUTPUT_IMAGE_DIR / f"{media_id}_out.jpg"
+        else:
+            out_path = OUTPUT_VIDEO_DIR / f"{media_id}_out.mp4"
+        
+        # 處理媒體檔案
+        output_path = processor.process(
+            media_path=src_path,
+            mode=mode,
+            selected_face_ids=selected_ids if selected_ids else None,
+            overlay_path=overlay_path,
+            output_path=out_path,
+        )
+        
+        # 更新資料庫記錄
         media_record = Media.query.filter_by(media_id=media_id).first()
         if media_record:
-            media_record.output_path = str(out_path)
+            media_record.output_path = str(output_path)
             media_record.process_mode = mode
             media_record.status = "processed"
             media_record.processed_at = datetime.now()
@@ -1199,92 +1200,13 @@ def process():
         
         # 重定向到結果頁面
         return redirect(url_for("result", media_id=media_id))
-
-    # 影片處理
-    cap = cv2.VideoCapture(str(src_path))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if not fps or fps < 1:
-        fps = 24
-    ok, first_frame = cap.read()
-    if not ok:
-        cap.release()
-        abort(400, "無法讀取影片影格")
-    height, width = first_frame.shape[:2]
-    out_base = OUTPUT_VIDEO_DIR / f"{media_id}_out"
-    writer, out_path = _open_video_writer(out_base, fps, (width, height))
-    if writer is None:
-        cap.release()
-        abort(500, "影片編碼器初始失敗")
-
-    overlay = None
-    if mode == "replace":
-        if overlay_path is None:
-            abort(400, "請上傳替換圖片")
-        overlay = _load_overlay_rgba(overlay_path)
-        if overlay is None:
-            abort(400, "替換圖片讀取失敗")
-
-    prev_faces = None
-    prev_eye_boxes = []
-    frame_idx = 0
-    video_landmarker = _create_face_landmarker_video()
-    if video_landmarker is None:
-        cap.release()
-        writer.release()
-        abort(500, "MediaPipe 初始化失敗")
-    face_landmarks, faces = _detect_landmarks_bgr(first_frame, video_landmarker, 0)
-    faces = _smooth_faces(prev_faces, faces)
-    prev_faces = faces
-    face_landmarks = _filter_landmarks_by_indices(face_landmarks, selected_ids)
-    faces = _filter_faces_by_indices(faces, selected_ids)
-    if mode == "mosaic":
-        processed = apply_mosaic(first_frame, faces)
-    elif mode == "eyes":
-        processed, prev_eye_boxes = apply_eye_cover(
-            first_frame, face_landmarks, prev_eye_boxes
-        )
-    elif mode == "replace":
-        processed = apply_face_replace(first_frame, faces, overlay)
-
-    writer.write(processed)
-
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            break
-        frame_idx += 1
-        timestamp_ms = int(frame_idx * 1000 / fps)
-        face_landmarks, faces = _detect_landmarks_bgr(
-            frame, video_landmarker, timestamp_ms
-        )
-        faces = _smooth_faces(prev_faces, faces)
-        prev_faces = faces
-        face_landmarks = _filter_landmarks_by_indices(face_landmarks, selected_ids)
-        faces = _filter_faces_by_indices(faces, selected_ids)
-        if mode == "mosaic":
-            processed = apply_mosaic(frame, faces)
-        elif mode == "eyes":
-            processed, prev_eye_boxes = apply_eye_cover(
-                frame, face_landmarks, prev_eye_boxes
-            )
-        elif mode == "replace":
-            processed = apply_face_replace(frame, faces, overlay)
-
-        writer.write(processed)
-
-    cap.release()
-    writer.release()
     
-    media_record = Media.query.filter_by(media_id=media_id).first()
-    if media_record:
-        media_record.output_path = str(out_path)
-        media_record.process_mode = mode
-        media_record.status = "processed"
-        media_record.processed_at = datetime.now()
-        db.session.commit()
-    
-    # 重定向到結果頁面
-    return redirect(url_for("result", media_id=media_id))
+    except ValueError as e:
+        abort(400, str(e))
+    except RuntimeError as e:
+        abort(500, str(e))
+    except Exception as e:
+        abort(500, f"處理失敗: {str(e)}")
 
 
 @app.route("/outputs/images/<path:filename>")
