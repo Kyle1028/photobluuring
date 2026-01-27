@@ -225,6 +225,10 @@
         }
         
         @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
             .container {
                 padding: 25px 15px;
                 max-width: 100%;
@@ -238,8 +242,19 @@
                 font-size: 22px;
             }
             
+            .subtitle {
+                font-size: 12px;
+            }
+            
             .btn {
                 font-size: 15px;
+                width: 100%;
+            }
+            
+            .form-options {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
             }
         }
     </style>

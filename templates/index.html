@@ -205,7 +205,7 @@
       @media (max-width: 768px) {
         .navbar {
           padding: 10px 15px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap; /* 手機寬度時仍維持單列，避免元素掉到第二行 */
         }
         
         .navbar-brand {
@@ -219,7 +219,7 @@
         .navbar-user {
           gap: 10px;
           font-size: 12px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
         
         .user-email {
@@ -229,6 +229,10 @@
         .nav-link, .btn-logout {
           padding: 8px 12px;
           font-size: 12px;
+        }
+        
+        .container {
+          padding: 90px 20px 25px 20px; /* 增加頂部 padding 避免被導航欄遮擋 */
         }
         
         .card {
@@ -251,13 +255,27 @@
       
       @media (max-width: 480px) {
         .navbar {
-          padding: 10px;
+          padding: 8px 10px !important;
+        }
+        
+        .navbar-brand img {
+          height: 28px !important;
         }
         
         .navbar-user {
-          width: 100%;
+          width: auto; /* 不佔滿整行，避免被推到第二列 */
           justify-content: flex-end;
-          margin-top: 10px;
+          margin-top: 0;
+          gap: 6px !important;
+          flex-wrap: nowrap;
+        }
+        
+        .user-email {
+          display: none !important;
+        }
+        
+        .container {
+          padding: 80px 10px 20px 10px; /* 增加頂部 padding 避免被導航欄遮擋 */
         }
         
         .card {
@@ -266,6 +284,18 @@
         
         h2 {
           font-size: 20px;
+        }
+        
+        button {
+          width: 100%;
+        }
+        
+        .hint {
+          font-size: 12px;
+        }
+        
+        input[type="file"] {
+          font-size: 14px;
         }
       }
     </style>

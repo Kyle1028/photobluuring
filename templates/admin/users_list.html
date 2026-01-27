@@ -166,6 +166,7 @@
             border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
+            white-space: nowrap; /* 帳號等級標籤不換行 */
         }
         
         .role-super-admin {
@@ -189,6 +190,7 @@
             border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
+            white-space: nowrap; /* 狀態標籤不換行 */
         }
         
         .status-active {
@@ -270,6 +272,118 @@
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+        
+        /* 手機版響應式設計 */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 0;
+            }
+            
+            .navbar {
+                padding: 10px 15px !important;
+                flex-wrap: wrap;
+            }
+            
+            .navbar-brand {
+                font-size: 16px !important;
+            }
+            
+            .navbar-brand img {
+                height: 32px !important;
+            }
+            
+            .navbar-user {
+                gap: 10px !important;
+                flex-wrap: wrap;
+            }
+            
+            .user-email {
+                font-size: 12px !important;
+                max-width: 120px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            
+            .container {
+                padding: 90px 10px 20px 10px; /* 增加頂部 padding 避免被導航欄遮擋 */
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .users-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            table {
+                min-width: 800px;
+                font-size: 13px;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+            
+            .action-form {
+                display: block;
+                margin-bottom: 5px;
+            }
+            
+            select {
+                width: 100%;
+                font-size: 11px;
+                padding: 5px 8px;
+            }
+            
+            .btn {
+                font-size: 11px;
+                padding: 6px 10px;
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding-top: 0;
+            }
+            
+            .navbar {
+                padding: 8px 10px !important;
+            }
+            
+            .navbar-brand img {
+                height: 28px !important;
+            }
+            
+            .user-email {
+                display: none !important;
+            }
+            
+            .container {
+                padding: 80px 5px 15px 5px; /* 增加頂部 padding 避免被導航欄遮擋 */
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            table {
+                min-width: 700px;
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px 5px;
+            }
+            
+            .role-badge, .status-badge {
+                font-size: 10px;
+                padding: 3px 8px;
+            }
         }
     </style>
 </head>

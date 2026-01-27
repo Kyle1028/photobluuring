@@ -130,6 +130,50 @@
     background: #e0e0e0;
     margin: 4px 0;
   }
+  
+  /* 手機版響應式設計 */
+  @media (max-width: 768px) {
+    .settings-btn {
+      padding: 8px 12px !important;
+      font-size: 12px !important;
+      gap: 4px !important;
+    }
+    
+    .settings-btn span:nth-child(2) {
+      display: none;
+    }
+    
+    .settings-menu {
+      right: 0;
+      min-width: 180px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .settings-btn {
+      padding: 8px 10px !important;
+      min-width: 40px;
+      justify-content: center;
+    }
+    
+    .settings-btn span:not(:first-child):not(.dropdown-arrow) {
+      display: none !important;
+    }
+    
+    .dropdown-arrow {
+      display: none;
+    }
+    
+    .settings-menu {
+      min-width: 160px;
+      right: 0;
+    }
+    
+    .settings-item {
+      padding: 10px 15px;
+      font-size: 13px;
+    }
+  }
 </style>
 
 <script>

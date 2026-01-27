@@ -235,6 +235,86 @@
             color: #999;
             margin-top: 5px;
         }
+        
+        /* 手機版響應式設計 */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 10px 15px !important;
+                flex-wrap: wrap;
+            }
+            
+            .navbar-brand {
+                font-size: 16px !important;
+            }
+            
+            .navbar-brand img {
+                height: 32px !important;
+            }
+            
+            .navbar-user {
+                gap: 10px !important;
+                flex-wrap: wrap;
+            }
+            
+            .user-email {
+                font-size: 12px !important;
+                max-width: 120px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            
+            .container {
+                padding: 90px 10px 20px 10px; /* 增加頂部 padding 避免被導航欄遮擋 */
+            }
+            
+            .form-card {
+                padding: 25px 15px;
+            }
+            
+            .form-header h1 {
+                font-size: 24px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .form-actions .btn {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 8px 10px !important;
+            }
+            
+            .navbar-brand img {
+                height: 28px !important;
+            }
+            
+            .user-email {
+                display: none !important;
+            }
+            
+            .container {
+                padding: 80px 5px 15px 5px; /* 增加頂部 padding 避免被導航欄遮擋 */
+            }
+            
+            .form-card {
+                padding: 20px 10px;
+            }
+            
+            .form-header h1 {
+                font-size: 20px;
+            }
+            
+            textarea {
+                min-height: 100px;
+            }
+        }
     </style>
 </head>
 <body>

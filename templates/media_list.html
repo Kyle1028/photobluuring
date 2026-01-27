@@ -256,15 +256,82 @@
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
         
+        /* 手機版響應式設計 */
         @media (max-width: 768px) {
-            .media-grid, .exhibitions-grid {
-                grid-template-columns: 1fr;
+            .navbar {
+                padding: 10px 15px !important;
+                flex-wrap: wrap;
+            }
+            
+            .navbar-brand {
+                font-size: 16px !important;
+            }
+            
+            .navbar-brand img {
+                height: 32px !important;
+            }
+            
+            .navbar-user {
+                gap: 10px !important;
+                flex-wrap: wrap;
+            }
+            
+            .user-email {
+                font-size: 12px !important;
+                max-width: 120px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            
+            .container {
+                padding: 90px 10px 20px 10px; /* 增加頂部 padding 避免被導航欄遮擋 */
             }
             
             .header {
                 flex-direction: column;
                 gap: 20px;
                 align-items: flex-start;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .media-grid, .exhibitions-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .btn-create {
+                width: 100%;
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 8px 10px !important;
+            }
+            
+            .navbar-brand img {
+                height: 28px !important;
+            }
+            
+            .user-email {
+                display: none !important;
+            }
+            
+            .container {
+                padding: 80px 5px 15px 5px; /* 增加頂部 padding 避免被導航欄遮擋 */
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .exhibition-card {
+                margin-bottom: 15px;
             }
         }
     </style>
