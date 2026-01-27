@@ -428,8 +428,8 @@ msgstr "Disable"
 msgid "當前用戶"
 msgstr "Current User"
 
-msgid "管理系統中的所有用戶，設置角色和啟用狀態"
-msgstr "Manage all users in the system, set roles and activation status"
+msgid "管理系統中的所有用戶，設置帳號等級和啟用狀態"
+msgstr "Manage all users in the system, set account levels and activation status"
 
 msgid "管理您的展覽，創建、編輯或刪除展覽"
 msgstr "Manage your exhibitions, create, edit or delete exhibitions"

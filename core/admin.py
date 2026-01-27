@@ -267,7 +267,7 @@ def users_list():
     用戶列表頁面
     只有超級管理員可以訪問
     """
-    users = User.query.order_by(User.created_at.desc()).all()
+    users = User.query.order_by(User.id.asc()).all()
     return render_template("admin/users_list.html", users=users)
 
 
