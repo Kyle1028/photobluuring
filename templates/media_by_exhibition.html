@@ -434,11 +434,18 @@
                                onchange="updateBulkActions()"
                                {% if not (current_user.is_super_admin_role() or media.user_id == current_user.id) %}disabled{% endif %}>
                         <div style="position: relative;">
-                            {% set preview_filename = media.media_id + '_preview.jpg' %}
-                            <img src="{{ url_for('previews', filename=preview_filename) }}" 
-                                 alt="{{ media.original_filename or media.media_id }}" 
-                                 class="media-preview"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            {% if media.preview_url %}
+                                <img src="{{ media.preview_url }}" 
+                                     alt="{{ media.original_filename or media.media_id }}" 
+                                     class="media-preview"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            {% else %}
+                                {% set preview_filename = media.media_id + '_preview.jpg' %}
+                                <img src="{{ url_for('previews', filename=preview_filename) }}" 
+                                     alt="{{ media.original_filename or media.media_id }}" 
+                                     class="media-preview"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            {% endif %}
                             <div class="media-preview" style="display: none; align-items: center; justify-content: center; color: #999; font-size: 14px;">
                                 {% if media.file_type == 'video' %}
                                     🎥 {{ _('影片') }}

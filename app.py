@@ -1246,7 +1246,7 @@ def upload_to_exhibition(exhibition_id):
     else:
         relative_path = saved_path_obj
     
-    # 如果是影片，嘗試生成預覽圖作為縮圖
+    # 生成預覽圖（圖片和影片都需要）
     thumbnail_path = str(relative_path)
     if file_type == "video":
         try:
@@ -1257,6 +1257,16 @@ def upload_to_exhibition(exhibition_id):
                 # 保存第一幀作為預覽圖
                 preview_path = PREVIEW_DIR / f"{media_id}_preview.jpg"
                 cv2.imwrite(str(preview_path), frame)
+                thumbnail_path = str(preview_path.relative_to(BASE_DIR))
+        except Exception:
+            pass  # 如果生成預覽圖失敗，使用原始路徑
+    else:
+        # 對於圖片，也生成預覽圖（直接複製圖片作為預覽圖）
+        try:
+            image = cv2.imread(str(saved_path))
+            if image is not None:
+                preview_path = PREVIEW_DIR / f"{media_id}_preview.jpg"
+                cv2.imwrite(str(preview_path), image)
                 thumbnail_path = str(preview_path.relative_to(BASE_DIR))
         except Exception:
             pass  # 如果生成預覽圖失敗，使用原始路徑
@@ -1665,6 +1675,40 @@ def previews(filename):
     return send_from_directory(PREVIEW_DIR, filename, as_attachment=False)
 
 
+@app.route("/uploads/images/<path:filename>")
+@login_required
+def upload_images(filename):
+    """
+    提供原始上傳的圖片
+    需要登入才能存取
+    支援新的日期目錄結構：uploads/images/YYYY/MM/檔案名
+    """
+    # 查找檔案（支援日期目錄結構）
+    candidates = list(UPLOAD_IMAGE_DIR.rglob(filename))
+    if not candidates:
+        abort(404, "檔案不存在")
+    
+    file_path = candidates[0]
+    return send_from_directory(file_path.parent, file_path.name, as_attachment=False)
+
+
+@app.route("/uploads/videos/<path:filename>")
+@login_required
+def upload_videos(filename):
+    """
+    提供原始上傳的影片
+    需要登入才能存取
+    支援新的日期目錄結構：uploads/videos/YYYY/MM/檔案名
+    """
+    # 查找檔案（支援日期目錄結構）
+    candidates = list(UPLOAD_VIDEO_DIR.rglob(filename))
+    if not candidates:
+        abort(404, "檔案不存在")
+    
+    file_path = candidates[0]
+    return send_from_directory(file_path.parent, file_path.name, as_attachment=False)
+
+
 @app.route("/exhibition/<int:exhibition_id>/photo/<int:photo_id>/delete", methods=["POST"])
 @login_required
 def delete_exhibition_photo(exhibition_id, photo_id):
@@ -1830,10 +1874,54 @@ def media_by_exhibition(exhibition_id):
             exhibition_id=exhibition_id
         ).order_by(Media.created_at.desc()).all()
     
-    # 載入 user 關聯（用於顯示上傳者資訊）
+    # 載入 user 關聯（用於顯示上傳者資訊）並計算預覽圖 URL
     for media in media_list:
         if media.user_id:
             media.user = db.session.get(User, media.user_id)
+        
+        # 計算預覽圖 URL
+        preview_filename = f"{media.media_id}_preview.jpg"
+        preview_path = PREVIEW_DIR / preview_filename
+        if preview_path.exists():
+            # 如果預覽圖存在，使用預覽圖
+            media.preview_url = url_for("previews", filename=preview_filename)
+        elif media.upload_path:
+            # 如果預覽圖不存在，使用原始圖片/影片
+            upload_path = Path(media.upload_path)
+            if not upload_path.exists():
+                # 如果檔案不存在，使用預設預覽圖
+                media.preview_url = url_for("previews", filename=preview_filename)
+            else:
+                # 構建相對路徑（從 UPLOAD_IMAGE_DIR 或 UPLOAD_VIDEO_DIR 開始）
+                if media.file_type == "image":
+                    try:
+                        # 嘗試從 UPLOAD_IMAGE_DIR 計算相對路徑
+                        upload_rel = upload_path.relative_to(UPLOAD_IMAGE_DIR)
+                        media.preview_url = url_for("upload_images", filename=str(upload_rel).replace("\\", "/"))
+                    except ValueError:
+                        # 如果路徑不在 UPLOAD_IMAGE_DIR 下，嘗試從 BASE_DIR 計算
+                        try:
+                            rel_path = upload_path.relative_to(BASE_DIR)
+                            media.preview_url = url_for("upload_images", filename=str(rel_path).replace("\\", "/"))
+                        except ValueError:
+                            # 如果都不行，使用檔名
+                            media.preview_url = url_for("upload_images", filename=upload_path.name)
+                else:
+                    try:
+                        # 嘗試從 UPLOAD_VIDEO_DIR 計算相對路徑
+                        upload_rel = upload_path.relative_to(UPLOAD_VIDEO_DIR)
+                        media.preview_url = url_for("upload_videos", filename=str(upload_rel).replace("\\", "/"))
+                    except ValueError:
+                        # 如果路徑不在 UPLOAD_VIDEO_DIR 下，嘗試從 BASE_DIR 計算
+                        try:
+                            rel_path = upload_path.relative_to(BASE_DIR)
+                            media.preview_url = url_for("upload_videos", filename=str(rel_path).replace("\\", "/"))
+                        except ValueError:
+                            # 如果都不行，使用檔名
+                            media.preview_url = url_for("upload_videos", filename=upload_path.name)
+        else:
+            # 如果沒有上傳路徑，使用預設預覽圖
+            media.preview_url = url_for("previews", filename=preview_filename)
     
     return render_template("media_by_exhibition.html", 
                           exhibition=exhibition,
@@ -1858,10 +1946,54 @@ def media_uncategorized():
             exhibition_id=None
         ).order_by(Media.created_at.desc()).all()
     
-    # 載入 user 關聯（用於顯示上傳者資訊）
+    # 載入 user 關聯（用於顯示上傳者資訊）並計算預覽圖 URL
     for media in media_list:
         if media.user_id:
             media.user = db.session.get(User, media.user_id)
+        
+        # 計算預覽圖 URL
+        preview_filename = f"{media.media_id}_preview.jpg"
+        preview_path = PREVIEW_DIR / preview_filename
+        if preview_path.exists():
+            # 如果預覽圖存在，使用預覽圖
+            media.preview_url = url_for("previews", filename=preview_filename)
+        elif media.upload_path:
+            # 如果預覽圖不存在，使用原始圖片/影片
+            upload_path = Path(media.upload_path)
+            if not upload_path.exists():
+                # 如果檔案不存在，使用預設預覽圖
+                media.preview_url = url_for("previews", filename=preview_filename)
+            else:
+                # 構建相對路徑（從 UPLOAD_IMAGE_DIR 或 UPLOAD_VIDEO_DIR 開始）
+                if media.file_type == "image":
+                    try:
+                        # 嘗試從 UPLOAD_IMAGE_DIR 計算相對路徑
+                        upload_rel = upload_path.relative_to(UPLOAD_IMAGE_DIR)
+                        media.preview_url = url_for("upload_images", filename=str(upload_rel).replace("\\", "/"))
+                    except ValueError:
+                        # 如果路徑不在 UPLOAD_IMAGE_DIR 下，嘗試從 BASE_DIR 計算
+                        try:
+                            rel_path = upload_path.relative_to(BASE_DIR)
+                            media.preview_url = url_for("upload_images", filename=str(rel_path).replace("\\", "/"))
+                        except ValueError:
+                            # 如果都不行，使用檔名
+                            media.preview_url = url_for("upload_images", filename=upload_path.name)
+                else:
+                    try:
+                        # 嘗試從 UPLOAD_VIDEO_DIR 計算相對路徑
+                        upload_rel = upload_path.relative_to(UPLOAD_VIDEO_DIR)
+                        media.preview_url = url_for("upload_videos", filename=str(upload_rel).replace("\\", "/"))
+                    except ValueError:
+                        # 如果路徑不在 UPLOAD_VIDEO_DIR 下，嘗試從 BASE_DIR 計算
+                        try:
+                            rel_path = upload_path.relative_to(BASE_DIR)
+                            media.preview_url = url_for("upload_videos", filename=str(rel_path).replace("\\", "/"))
+                        except ValueError:
+                            # 如果都不行，使用檔名
+                            media.preview_url = url_for("upload_videos", filename=upload_path.name)
+        else:
+            # 如果沒有上傳路徑，使用預設預覽圖
+            media.preview_url = url_for("previews", filename=preview_filename)
     
     return render_template("media_by_exhibition.html", 
                           exhibition=None,
