@@ -22,6 +22,11 @@
       
       /* 導航列 */
       .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
         background: white;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         padding: 15px 30px;
@@ -97,7 +102,7 @@
       /* 主內容區 */
       .container {
         flex: 1;
-        padding: 40px 20px;
+        padding: 100px 20px 40px 20px; /* 上方 padding 增加以適應固定導航欄 */
         max-width: 1200px;
         margin: 0 auto;
         width: 100%;
@@ -206,6 +211,10 @@
         object-fit: cover;
         background: #f0f0f0;
         display: block;
+      }
+      
+      video.photo-image {
+        cursor: pointer;
       }
       
       .photo-info {
@@ -380,11 +389,20 @@
       {% if photos %}
         <div class="photos-grid">
           {% for photo in photos %}
-            <div class="photo-card" onclick="openPhotoModal({{ photo.id }})">
-              <img src="{{ url_for('exhibition_photo', exhibition_id=exhibition.id, photo_id=photo.id) }}" 
-                   alt="{{ photo.title or '照片' }}" 
-                   class="photo-image"
-                   loading="lazy">
+            {% set photo_ext = photo.photo_path.split('.')[-1].lower() if '.' in photo.photo_path else '' %}
+            {% set is_video = photo_ext in ['mp4', 'mov', 'avi', 'webm', 'mkv'] %}
+            <div class="photo-card" {% if not is_video %}onclick="openPhotoModal({{ photo.id }})"{% endif %}>
+              {% if is_video %}
+                <video class="photo-image" controls preload="metadata">
+                  <source src="{{ url_for('exhibition_photo', exhibition_id=exhibition.id, photo_id=photo.id) }}" type="video/{{ photo_ext }}">
+                  {{ _('您的瀏覽器不支援影片播放') }}
+                </video>
+              {% else %}
+                <img src="{{ url_for('exhibition_photo', exhibition_id=exhibition.id, photo_id=photo.id) }}" 
+                     alt="{{ photo.title or '照片' }}" 
+                     class="photo-image"
+                     loading="lazy">
+              {% endif %}
               <div class="photo-info">
                 {% if photo.title %}
                   <h3 class="photo-title">{{ photo.title }}</h3>

@@ -22,6 +22,11 @@
       
       /* 導航列 */
       .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
         background: white;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         padding: 15px 30px;
@@ -97,7 +102,7 @@
       /* 主內容區 */
       .container {
         flex: 1;
-        padding: 40px 20px;
+        padding: 100px 20px 40px 20px; /* 上方 padding 增加以適應固定導航欄 */
         max-width: 1200px;
         margin: 0 auto;
         width: 100%;

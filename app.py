@@ -1071,7 +1071,8 @@ def exhibition_cover(exhibition_id):
 @app.route("/exhibition/<int:exhibition_id>/photo/<int:photo_id>")
 def exhibition_photo(exhibition_id, photo_id):
     """
-    提供展覽照片的存取
+    提供展覽照片/影片的存取
+    支持圖片和影片
     """
     exhibition = Exhibition.query.get_or_404(exhibition_id)
     
@@ -1097,8 +1098,8 @@ def exhibition_photo(exhibition_id, photo_id):
         full_path = BASE_DIR / photo_path
     
     if not full_path.exists():
-        # 如果照片不存在，返回預設圖片或錯誤
-        abort(404, f"照片檔案不存在: {full_path}")
+        # 如果檔案不存在，返回錯誤
+        abort(404, f"檔案不存在: {full_path}")
     
     return send_from_directory(full_path.parent, full_path.name, as_attachment=False)
 
@@ -1406,6 +1407,54 @@ def process():
             media_record.process_mode = mode
             media_record.status = "processed"
             media_record.processed_at = datetime.now()
+            
+            # 如果媒體檔案有關聯到展覽，自動添加到展覽照片中（圖片和影片都支持）
+            if media_record.exhibition_id:
+                # 將輸出路徑轉換為相對路徑（相對於 BASE_DIR）
+                output_path_obj = Path(output_path)
+                if output_path_obj.is_absolute():
+                    try:
+                        relative_path = output_path_obj.relative_to(BASE_DIR)
+                    except ValueError:
+                        # 如果路徑不在 BASE_DIR 下，使用絕對路徑
+                        relative_path = output_path_obj
+                else:
+                    relative_path = output_path_obj
+                
+                # 檢查是否已經存在對應的 ExhibitionPhoto（使用相對路徑比較）
+                existing_photo = ExhibitionPhoto.query.filter_by(
+                    exhibition_id=media_record.exhibition_id
+                ).filter(
+                    (ExhibitionPhoto.photo_path == str(relative_path)) | 
+                    (ExhibitionPhoto.photo_path == str(output_path))
+                ).first()
+                
+                if not existing_photo:
+                    # 獲取該展覽現有的照片數量，用於設定顯示順序
+                    max_order = db.session.query(db.func.max(ExhibitionPhoto.display_order)).filter_by(
+                        exhibition_id=media_record.exhibition_id
+                    ).scalar() or -1
+                    
+                    # 如果是影片，使用預覽圖作為縮圖；如果是圖片，使用處理後的圖片作為縮圖
+                    if media_record.file_type == "video":
+                        # 查找預覽圖作為縮圖
+                        preview_files = list(PREVIEW_DIR.glob(f"{media_id}_preview.*"))
+                        thumbnail_path = preview_files[0].relative_to(BASE_DIR) if preview_files else str(relative_path)
+                    else:
+                        thumbnail_path = str(relative_path)
+                    
+                    # 創建展覽照片記錄（使用相對路徑）
+                    exhibition_photo = ExhibitionPhoto(
+                        exhibition_id=media_record.exhibition_id,
+                        photo_path=str(relative_path),
+                        thumbnail_path=str(thumbnail_path),
+                        title=media_record.original_filename or (f"處理後的{'影片' if media_record.file_type == 'video' else '照片'} {media_id}"),
+                        description=f"處理模式: {mode}",
+                        display_order=max_order + 1,
+                        created_at=datetime.now()
+                    )
+                    db.session.add(exhibition_photo)
+            
             db.session.commit()
         
         # 重定向到結果頁面
@@ -1579,36 +1628,76 @@ def _delete_media_file(media_id):
         if not current_user.is_super_admin_role() and media.user_id != current_user.id:
             return False, f"沒有權限刪除檔案 {media_id}"
         
-        # 刪除檔案
+        errors = []
+        
+        # 刪除原始上傳檔案
         if media.upload_path:
             upload_file = Path(media.upload_path)
             if upload_file.exists():
-                upload_file.unlink()
+                try:
+                    upload_file.unlink()
+                except Exception as e:
+                    errors.append(f"無法刪除上傳檔案: {e}")
         
+        # 刪除處理後的檔案
         if media.output_path:
             output_file = Path(media.output_path)
             if output_file.exists():
-                output_file.unlink()
+                try:
+                    output_file.unlink()
+                except Exception as e:
+                    errors.append(f"無法刪除處理檔案: {e}")
         
-        # 刪除預覽圖
-        preview_files = list(PREVIEW_DIR.glob(f"{media_id}_preview.*"))
-        for preview_file in preview_files:
-            if preview_file.exists():
-                preview_file.unlink()
+        # 刪除預覽圖（使用 glob 匹配所有可能的副檔名）
+        try:
+            preview_files = list(PREVIEW_DIR.glob(f"{media_id}_preview.*"))
+            for preview_file in preview_files:
+                if preview_file.exists():
+                    try:
+                        preview_file.unlink()
+                    except Exception as e:
+                        errors.append(f"無法刪除預覽圖 {preview_file.name}: {e}")
+        except Exception as e:
+            errors.append(f"查找預覽圖時出錯: {e}")
         
-        # 刪除人臉資料
+        # 刪除人臉資料 JSON
         faces_json = METADATA_DIR / f"{media_id}_faces.json"
         if faces_json.exists():
-            faces_json.unlink()
+            try:
+                faces_json.unlink()
+            except Exception as e:
+                errors.append(f"無法刪除人臉資料: {e}")
         
-        # 刪除人臉截圖
-        face_crops = list(METADATA_DIR.glob(f"{media_id}_face_*.jpg"))
-        for crop_file in face_crops:
-            if crop_file.exists():
-                crop_file.unlink()
+        # 刪除人臉截圖（注意：人臉截圖保存在 PREVIEW_DIR，不是 METADATA_DIR）
+        try:
+            face_crops_preview = list(PREVIEW_DIR.glob(f"{media_id}_face_*.jpg"))
+            for crop_file in face_crops_preview:
+                if crop_file.exists():
+                    try:
+                        crop_file.unlink()
+                    except Exception as e:
+                        errors.append(f"無法刪除人臉截圖 {crop_file.name}: {e}")
+        except Exception as e:
+            errors.append(f"查找人臉截圖時出錯: {e}")
+        
+        # 也檢查 METADATA_DIR（以防萬一）
+        try:
+            face_crops_metadata = list(METADATA_DIR.glob(f"{media_id}_face_*.jpg"))
+            for crop_file in face_crops_metadata:
+                if crop_file.exists():
+                    try:
+                        crop_file.unlink()
+                    except Exception as e:
+                        errors.append(f"無法刪除人臉截圖 {crop_file.name}: {e}")
+        except Exception as e:
+            pass  # METADATA_DIR 中沒有人臉截圖是正常的
         
         # 刪除資料庫記錄
         db.session.delete(media)
+        
+        # 如果有錯誤但資料庫記錄已刪除，仍然返回成功（檔案可能已經不存在）
+        if errors:
+            return True, f"部分檔案刪除失敗: {'; '.join(errors)}"
         
         return True, None
     except Exception as e:

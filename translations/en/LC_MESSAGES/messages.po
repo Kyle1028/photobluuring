@@ -541,3 +541,6 @@ msgstr "files,"
 
 msgid "個失敗"
 msgstr "failed"
+
+msgid "您的瀏覽器不支援影片播放"
+msgstr "Your browser does not support video playback"

@@ -9,7 +9,8 @@ from datetime import datetime, date
 from shutil import copy2
 
 # 添加專案根目錄到路徑
-BASE_DIR = Path(__file__).resolve().parent
+# BASE_DIR 應該是專案根目錄，不是 scripts 目錄
+BASE_DIR = Path(__file__).resolve().parent.parent  # 上一層目錄才是專案根目錄
 sys.path.insert(0, str(BASE_DIR))
 
 # 設定 UTF-8 輸出

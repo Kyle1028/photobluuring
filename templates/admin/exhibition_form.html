@@ -20,6 +20,11 @@
         
         /* 導航列 */
         .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
             background: white;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             padding: 15px 30px;
@@ -93,8 +98,8 @@
         /* 主內容區 */
         .container {
             max-width: 800px;
-            margin: 40px auto;
-            padding: 0 20px;
+            margin: 0 auto;
+            padding: 100px 20px 40px 20px; /* 上方 padding 增加以適應固定導航欄 */
         }
         
         .form-card {
@@ -236,7 +241,9 @@
     <!-- 導航列 -->
     <nav class="navbar">
         <div class="navbar-brand">
-            <a href="{{ url_for('index') }}">商景 Bizeview</a>
+            <a href="{{ url_for('index') }}">
+                <img src="/static/logo.png" alt="商景 Bizeview" style="height: 40px; vertical-align: middle;">
+            </a>
         </div>
         <div class="navbar-user">
             {% include '_language_switcher.html' %}
@@ -297,7 +304,7 @@
                     <div class="help-text">{{ _('支援 JPG、PNG、WEBP 格式') }}</div>
                     {% if exhibition and exhibition.cover_image %}
                         <div class="help-text" style="margin-top: 10px;">
-                            {{ _('目前封面：') }}<a href="/{{ exhibition.cover_image }}" target="_blank">{{ _('查看') }}</a>
+                            {{ _('目前封面：') }}<a href="{{ url_for('exhibition_cover', exhibition_id=exhibition.id) }}" target="_blank">{{ _('查看') }}</a>
                         </div>
                     {% endif %}
                 </div>
