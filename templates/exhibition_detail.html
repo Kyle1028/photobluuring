@@ -413,7 +413,23 @@
             </div>
           {% endif %}
           <div class="meta-item">
-            <span>{{ photos|length }} {{ _('張照片') }}</span>
+            {% set video_exts = ['mp4', 'mov', 'webm', 'avi', 'mkv'] %}
+            {% set ns = namespace(photos=0, videos=0) %}
+            {% for p in photos %}
+              {% set ext = (p.photo_path.split('.')[-1]|lower) if '.' in p.photo_path else '' %}
+              {% if ext in video_exts %}
+                {% set ns.videos = ns.videos + 1 %}
+              {% else %}
+                {% set ns.photos = ns.photos + 1 %}
+              {% endif %}
+            {% endfor %}
+            {% if ns.photos > 0 and ns.videos > 0 %}
+              <span>{{ ns.photos }}{{ _('張照片') }}、{{ ns.videos }}{{ _('個影片') }}</span>
+            {% elif ns.videos > 0 %}
+              <span>{{ ns.videos }}{{ _('個影片') }}</span>
+            {% else %}
+              <span>{{ ns.photos }}{{ _('張照片') }}</span>
+            {% endif %}
           </div>
         </div>
         {% if current_user.is_authenticated %}

@@ -474,9 +474,19 @@
                     {% endif %}
                 </p>
             </div>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <a href="{{ url_for('media_list') }}" class="btn-back">← {{ _('返回') }}</a>
+                {% if exhibition %}
+                <form action="{{ url_for('upload_to_exhibition', exhibition_public_id=exhibition.public_id) }}?redirect=media" method="POST" enctype="multipart/form-data" style="display: inline-block;">
+                    <input type="file" name="media" accept="image/*,video/*" required style="display: none;" id="upload-input-exhibition">
+                    <label for="upload-input-exhibition" class="btn-create" style="cursor: pointer; margin: 0; display: inline-block;">+ {{ _('上傳新檔案') }}</label>
+                </form>
+                <script>
+                (function(){ var el = document.getElementById('upload-input-exhibition'); if(el) el.onchange = function(){ if(this.files.length) this.closest('form').submit(); }; })();
+                </script>
+                {% else %}
                 <a href="{{ url_for('upload_page') }}" class="btn-create">+ {{ _('上傳新檔案') }}</a>
+                {% endif %}
             </div>
         </div>
 

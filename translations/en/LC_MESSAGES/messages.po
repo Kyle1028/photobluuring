@@ -277,7 +277,10 @@ msgid "日期未定"
 msgstr "Date TBD"
 
 msgid "張照片"
-msgstr "Photos"
+msgstr " Photos"
+
+msgid "個影片"
+msgstr " Videos"
 
 msgid "目前尚無展覽"
 msgstr "No Exhibitions Available"

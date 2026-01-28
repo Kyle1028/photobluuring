@@ -1260,21 +1260,27 @@ def options(media_id):
 def upload_to_exhibition(exhibition_public_id):
     """
     直接上傳照片/影片到展覽（不進行隱私處理，對外使用 public_id）
-    只保存檔案並添加到展覽照片列表中
+    只保存檔案並添加到展覽照片列表中。
+    若 URL 帶 ?redirect=media，成功後導回媒體管理該展覽列表。
     """
     exhibition = Exhibition.query.filter_by(public_id=exhibition_public_id).first_or_404()
-    
+    goto_media = request.args.get("redirect") == "media"
+
     # 取得上傳的檔案
     file = request.files.get("media")
     if not file or not file.filename:
         flash(_("未提供檔案"), "error")
+        if goto_media:
+            return redirect(url_for("media_by_exhibition", exhibition_public_id=exhibition.public_id))
         return redirect(url_for("exhibition_detail", exhibition_public_id=exhibition.public_id))
-    
+
     # 檢查檔案格式
     original_filename = file.filename
     ext = Path(file.filename).suffix.lower()
     if ext not in ALLOWED_IMAGE_EXT and ext not in ALLOWED_VIDEO_EXT:
         flash(_("檔案格式不支援"), "error")
+        if goto_media:
+            return redirect(url_for("media_by_exhibition", exhibition_public_id=exhibition.public_id))
         return redirect(url_for("exhibition_detail", exhibition_public_id=exhibition.public_id))
     
     # 暫時 ID，存檔後再換成 8+15位序號+4碼隨機
@@ -1364,6 +1370,8 @@ def upload_to_exhibition(exhibition_public_id):
     db.session.commit()
     
     flash(_("檔案已成功上傳到展覽"), "success")
+    if goto_media:
+        return redirect(url_for("media_by_exhibition", exhibition_public_id=exhibition.public_id))
     return redirect(url_for("exhibition_detail", exhibition_public_id=exhibition.public_id))
 
 
@@ -1470,7 +1478,28 @@ def upload():
         db.session.add(media_record)
         db.session.commit()
         media_id = _apply_real_media_id(media_record)
+        if media_record.exhibition_id:
+            max_order = db.session.query(db.func.max(ExhibitionPhoto.display_order)).filter_by(
+                exhibition_id=media_record.exhibition_id
+            ).scalar() or -1
+            up = Path(media_record.upload_path)
+            photo_path_rel = up.relative_to(BASE_DIR) if up.is_absolute() else up
+            preview_path = PREVIEW_DIR / f"{media_record.media_id}_preview.jpg"
+            thumb_rel = str(preview_path.relative_to(BASE_DIR)) if preview_path.exists() else str(photo_path_rel)
+            db.session.add(ExhibitionPhoto(
+                exhibition_id=media_record.exhibition_id,
+                photo_path=str(photo_path_rel),
+                thumbnail_path=thumb_rel,
+                title=media_record.original_filename or "",
+                description="",
+                display_order=max_order + 1,
+                created_at=datetime.now()
+            ))
         db.session.commit()
+        if media_record.exhibition_id:
+            ex = db.session.get(Exhibition, media_record.exhibition_id)
+            if ex:
+                return redirect(url_for("media_by_exhibition", exhibition_public_id=ex.public_id))
         return redirect(url_for("options", media_id=media_id))
 
     cap = cv2.VideoCapture(str(saved_path))
@@ -1498,7 +1527,28 @@ def upload():
     db.session.add(media_record)
     db.session.commit()
     media_id = _apply_real_media_id(media_record)
+    if media_record.exhibition_id:
+        max_order = db.session.query(db.func.max(ExhibitionPhoto.display_order)).filter_by(
+            exhibition_id=media_record.exhibition_id
+        ).scalar() or -1
+        up = Path(media_record.upload_path)
+        photo_path_rel = up.relative_to(BASE_DIR) if up.is_absolute() else up
+        preview_path = PREVIEW_DIR / f"{media_record.media_id}_preview.jpg"
+        thumb_rel = str(preview_path.relative_to(BASE_DIR)) if preview_path.exists() else str(photo_path_rel)
+        db.session.add(ExhibitionPhoto(
+            exhibition_id=media_record.exhibition_id,
+            photo_path=str(photo_path_rel),
+            thumbnail_path=thumb_rel,
+            title=media_record.original_filename or "",
+            description="",
+            display_order=max_order + 1,
+            created_at=datetime.now()
+        ))
     db.session.commit()
+    if media_record.exhibition_id:
+        ex = db.session.get(Exhibition, media_record.exhibition_id)
+        if ex:
+            return redirect(url_for("media_by_exhibition", exhibition_public_id=ex.public_id))
     return redirect(url_for("options", media_id=media_id))
 
 

@@ -429,7 +429,23 @@
                     {% endif %}
                   </div>
                   <div class="exhibition-photo-count">
-                    {{ exhibition.photos|length }} {{ _('張照片') }}
+                    {% set video_exts = ['mp4', 'mov', 'webm', 'avi', 'mkv'] %}
+                    {% set ns = namespace(photos=0, videos=0) %}
+                    {% for p in exhibition.photos %}
+                      {% set ext = (p.photo_path.split('.')[-1]|lower) if '.' in p.photo_path else '' %}
+                      {% if ext in video_exts %}
+                        {% set ns.videos = ns.videos + 1 %}
+                      {% else %}
+                        {% set ns.photos = ns.photos + 1 %}
+                      {% endif %}
+                    {% endfor %}
+                    {% if ns.photos > 0 and ns.videos > 0 %}
+                      {{ ns.photos }}{{ _('張照片') }}、{{ ns.videos }}{{ _('個影片') }}
+                    {% elif ns.videos > 0 %}
+                      {{ ns.videos }}{{ _('個影片') }}
+                    {% else %}
+                      {{ ns.photos }}{{ _('張照片') }}
+                    {% endif %}
                   </div>
                 </div>
               </div>
