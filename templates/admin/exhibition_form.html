@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/static/logo-icon.png" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
     <title>{% if mode == 'create' %}{{ _('建立展覽') }}{% else %}{{ _('編輯展覽') }}{% endif %} - 商景 Bizeview</title>
     <style>
         * {
@@ -16,67 +17,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
             background: #f5f7fa;
             min-height: 100vh;
-        }
-        
-        /* 導航列 */
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .navbar-brand {
-            font-size: 20px;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .navbar-brand a {
-            text-decoration: none;
-            color: inherit;
-            display: inline-block;
-        }
-        
-        .navbar-brand img {
-            height: 40px;
-            vertical-align: middle;
-        }
-        
-        .navbar-user {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .user-email {
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .nav-link {
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 10px 20px;
-            border-radius: 6px;
-            transition: all 0.3s;
-            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
-        }
-        
-        .nav-link:hover {
-            background: #5568d3;
-            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-            transform: translateY(-1px);
         }
         
         .btn-logout {
