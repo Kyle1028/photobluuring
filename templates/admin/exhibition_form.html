@@ -410,7 +410,7 @@
                         <div>
                             <label for="floor_grid_f001">{{ _('網格大小（公尺，預設 1）') }}</label>
                             <input type="number" id="floor_grid_f001" name="floor_grid_f001" min="0.1" step="0.1"
-                                   value="">
+                                   value="1">
                         </div>
                     </div>
                     {% if exhibition and exhibition.floors %}
@@ -622,6 +622,11 @@
                                 
                                 // 顯示圈選區域
                                 areaSelectionSection.style.display = 'block';
+                                
+                                // 如果網格大小為空，設置預設值為 1
+                                if (!floorGridInput.value || parseFloat(floorGridInput.value) <= 0) {
+                                    floorGridInput.value = '1';
+                                }
                                 
                                 // 如果有寬高和網格大小，繪製網格
                                 updateGrid();

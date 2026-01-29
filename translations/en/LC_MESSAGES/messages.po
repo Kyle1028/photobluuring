@@ -656,3 +656,88 @@ msgstr "failed"
 
 msgid "您的瀏覽器不支援影片播放"
 msgstr "Your browser does not support video playback"
+
+# Additional translations
+msgid "上傳媒體並選擇區域"
+msgstr "Upload Media and Select Areas"
+
+msgid "點擊平面圖上的區域來選擇，可選擇多個區域"
+msgstr "Click areas on the floor plan to select, you can select multiple areas"
+
+msgid "已選區域"
+msgstr "Selected Areas"
+
+msgid "選擇檔案"
+msgstr "Select File"
+
+msgid "支援照片和影片格式"
+msgstr "Supports photo and video formats"
+
+msgid "上傳"
+msgstr "Upload"
+
+msgid "無法載入平面圖"
+msgstr "Failed to load floor plan"
+
+msgid "尚未選擇任何區域"
+msgstr "No areas selected yet"
+
+msgid "名稱"
+msgstr "Name"
+
+msgid "啟用狀態"
+msgstr "Active Status"
+
+msgid "儲存變更"
+msgstr "Save Changes"
+
+msgid "返回樓層列表"
+msgstr "Back to Floor List"
+
+msgid "個"
+msgstr "items"
+
+msgid "建立時間"
+msgstr "Created At"
+
+msgid "管理區域"
+msgstr "Manage Areas"
+
+msgid "此展覽尚無樓層"
+msgstr "This exhibition has no floors yet"
+
+msgid "請在編輯展覽時上傳樓層平面圖並設定尺寸"
+msgstr "Please upload floor plan and set dimensions when editing the exhibition"
+
+msgid "媒體"
+msgstr "Media"
+
+msgid "矩形選擇"
+msgstr "Rectangle Selection"
+
+msgid "多邊形選擇"
+msgstr "Polygon Selection"
+
+msgid "撤銷最後一點"
+msgstr "Undo Last Point"
+
+msgid "清除圈選"
+msgstr "Clear Selection"
+
+msgid "完成當前區域"
+msgstr "Finish Current Area"
+
+msgid "完成所有圈選"
+msgstr "Finish All Selections"
+
+msgid "已選擇的區域"
+msgstr "Selected Areas"
+
+msgid "選擇工具：矩形選擇（拖拽繪製矩形）或多邊形選擇（點擊多個點）。圈選區域外的網格將被標記為無效。"
+msgstr "Selection tool: Rectangle selection (drag to draw rectangle) or polygon selection (click multiple points). Grids outside the selected area will be marked as invalid."
+
+msgid "下載"
+msgstr "Download"
+
+msgid "點擊「上傳新檔案」開始上傳照片或影片"
+msgstr "Click \"Upload New File\" to start uploading photos or videos"

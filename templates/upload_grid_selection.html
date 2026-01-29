@@ -157,13 +157,17 @@
             position: absolute;
             top: 0;
             left: 0;
-            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
         }
         
         .cell-grid {
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: auto;
         }
         
@@ -383,8 +387,9 @@
                              style="display: block; max-width: 100%; height: auto;"
                              onload="setTimeout(() => { if(window.floorplanResetView) window.floorplanResetView(); renderCells(); }, 10);"
                              onerror="console.error('Failed to load floor plan image'); handleImageLoadError();">
-                        <div class="floorplan-overlay">
-                            <svg class="cell-grid" id="cellGrid"></svg>
+                        <!-- overlay 需要可接收點擊事件（點格子選擇） -->
+                        <div class="floorplan-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto;">
+                            <svg class="cell-grid" id="cellGrid" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto;"></svg>
                         </div>
                     </div>
                 </div>
@@ -471,29 +476,18 @@
             // 注意：img 在 stage 內會被 scale；這裡要用「未縮放的基準尺寸」
             const displayWidth = Math.round(img.offsetWidth);
             const displayHeight = Math.round(img.offsetHeight);
-            
-            // 確保有有效的尺寸
-            if (displayWidth <= 0 || displayHeight <= 0) {
-                console.warn('Invalid image dimensions:', displayWidth, displayHeight);
-                return;
-            }
 
-            // 設置 overlay 和 SVG 的尺寸，確保與圖片完全匹配
-            const overlay = svg.parentElement;
-            if (overlay && overlay.classList.contains('floorplan-overlay')) {
-                overlay.style.width = displayWidth + 'px';
-                overlay.style.height = displayHeight + 'px';
-            }
-            
             svg.setAttribute('viewBox', `0 0 ${displayWidth} ${displayHeight}`);
             svg.setAttribute('width', displayWidth);
             svg.setAttribute('height', displayHeight);
             svg.style.width = displayWidth + 'px';
             svg.style.height = displayHeight + 'px';
 
-            const { cols, rows } = getGridSizeFromCells();
-            const cellWidth = displayWidth / cols;
-            const cellHeight = displayHeight / rows;
+            // 計算網格尺寸（基於整個樓層）- 與展覽詳情頁一致
+            const totalCols = Math.floor(floorData.width / floorData.gridSize);
+            const totalRows = Math.floor(floorData.height / floorData.gridSize);
+            const cellWidth = displayWidth / totalCols;
+            const cellHeight = displayHeight / totalRows;
             
             // 清空 SVG
             svg.innerHTML = '';
@@ -524,6 +518,9 @@
                 svg.appendChild(r);
             });
         }
+        
+        // 將 renderCells 暴露到全域，讓縮放函數可以調用
+        window.renderCells = renderCells;
 
         // 初始化平移／縮放：支援滑鼠滾輪縮放與拖曳平移
         (function initFloorplanPanZoom() {
@@ -557,8 +554,9 @@
             function floorplanResetView() {
                 fpScale = 1;
                 // 盡量將平面圖置中顯示
+                const container = document.getElementById('floorplanContainer');
                 const img = document.getElementById('floorplanImage');
-                if (img && container) {
+                if (container && img) {
                     const cRect = container.getBoundingClientRect();
                     const imgWidth = img.naturalWidth || img.offsetWidth || cRect.width;
                     const imgHeight = img.naturalHeight || img.offsetHeight || cRect.height;
@@ -748,7 +746,22 @@
                 selectedCellIds.add(cellId);
             }
             updateSelectedCells();
-            renderCells();
+            
+            // 只更新選擇狀態，不重新渲染整個網格，避免網格跑掉
+            const svg = document.getElementById('cellGrid');
+            if (svg) {
+                const rects = svg.querySelectorAll('rect[data-cell-id="' + cellId + '"]');
+                rects.forEach(rect => {
+                    if (selectedCellIds.has(cellId)) {
+                        rect.classList.add('selected');
+                    } else {
+                        rect.classList.remove('selected');
+                    }
+                });
+            } else {
+                // 如果 SVG 不存在，才重新渲染
+                renderCells();
+            }
         }
         
         function updateSelectedCells() {
