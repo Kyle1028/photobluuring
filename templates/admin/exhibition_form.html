@@ -551,6 +551,19 @@
             {% endif %}
             ];
 
+            // 每個樓層目前已啟用的格子（用來在剛進編輯頁時還原原本範圍）
+            const floorCellsMap = {
+            {% if exhibition and exhibition.floors %}
+                {% for floor in exhibition.floors %}
+                "{{ floor.floor_code }}": [
+                    {% for cell in floor.cells|sort(attribute='row')|sort(attribute='col') %}
+                    { row: {{ cell.row }}, col: {{ cell.col }}, is_active: {{ 'true' if cell.is_active else 'false' }} }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]{% if not loop.last %},{% endif %}
+                {% endfor %}
+            {% endif %}
+            };
+
             function loadFloorForSelection(code) {
                 const data = floorsData.find(f => f.code === code);
                 if (!data) return;
@@ -1208,21 +1221,40 @@
                     allPolygons.push(polygonPoints.map(p => ({ x: p.x, y: p.y })));
                 }
                 
-                if (allPolygons.length === 0) return;
+                // 若沒有多邊形（剛進編輯頁尚未重新圈選），就用目前 DB 的啟用狀態來還原範圍
+                let activeCellSet = null;
+                const currentFloorCode = selectionFloorHidden ? selectionFloorHidden.value : null;
+                if (allPolygons.length === 0 && currentFloorCode && floorCellsMap[currentFloorCode]) {
+                    activeCellSet = new Set();
+                    floorCellsMap[currentFloorCode].forEach(c => {
+                        if (c.is_active) {
+                            activeCellSet.add(`${c.row},${c.col}`);
+                        }
+                    });
+                }
                 
-                // 檢查每個網格的中心點（只要在任何一個區域內就標記為有效）
+                // 檢查每個網格的中心點：
+                // - 若有多邊形，以多邊形計算 inside
+                // - 否則若有 activeCellSet，以 DB is_active 為準
                 for (let row = 0; row < gridData.rows; row++) {
                     for (let col = 0; col < gridData.cols; col++) {
                         const centerX = (col + 0.5) * gridData.cellWidth;
                         const centerY = (row + 0.5) * gridData.cellHeight;
                         
-                        // 檢查點是否在任何一個區域內
                         let isInside = false;
-                        for (const polygon of allPolygons) {
-                            if (pointInPolygon({ x: centerX, y: centerY }, polygon)) {
-                                isInside = true;
-                                break;
+                        if (allPolygons.length > 0) {
+                            // 檢查點是否在任何一個區域內
+                            for (const polygon of allPolygons) {
+                                if (pointInPolygon({ x: centerX, y: centerY }, polygon)) {
+                                    isInside = true;
+                                    break;
+                                }
                             }
+                        } else if (activeCellSet) {
+                            isInside = activeCellSet.has(`${row},${col}`);
+                        } else {
+                            // 沒有任何資訊時，不做上色
+                            continue;
                         }
                         
                         // 繪製網格背景色
