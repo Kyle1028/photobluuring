@@ -801,3 +801,118 @@ msgstr "Select the floor to define active area"
 
 msgid "選擇樓層後，下方圈選工具會載入該樓層的平面圖與網格設定"
 msgstr "After selecting a floor, the selection tool below will load its floor plan and grid settings"
+
+# Merged regions (cells management)
+msgid "合併區管理"
+msgstr "Merged Regions"
+
+msgid "可將多個儲存格合併為一個命名區塊，展覽頁會以區塊為單位顯示並自成一個網格。"
+msgstr "You can merge multiple cells into a named block; the exhibition page will show each block as its own grid."
+
+msgid "現有合併區"
+msgstr "Existing Merged Regions"
+
+msgid "建立合併區："
+msgstr "Create merged region:"
+
+msgid "區域名稱（例如：主展區）"
+msgstr "Region name (e.g. Main Hall)"
+
+msgid "合併選取的儲存格"
+msgstr "Merge selected cells"
+
+msgid "請在下方表格勾選「選取以合併」後再按此按鈕。"
+msgstr "Check \"Select to merge\" in the table below, then click this button."
+
+msgid "選取以合併"
+msgstr "Select to merge"
+
+msgid "所屬合併區"
+msgstr "Merged region"
+
+msgid "重新命名"
+msgstr "Rename"
+
+msgid "解除合併"
+msgstr "Unmerge"
+
+msgid "確定要解除此合併區嗎？儲存格會保留，僅取消合併。"
+msgstr "Are you sure you want to unmerge this region? Cells will remain; only the merge will be removed."
+
+msgid "合併區「%(name)s」已建立"
+msgstr "Merged region \"%(name)s\" created"
+
+msgid "建立合併區失敗：%(error)s"
+msgstr "Failed to create merged region: %(error)s"
+
+msgid "請輸入區域名稱並至少選擇一個儲存格"
+msgstr "Please enter a region name and select at least one cell"
+
+msgid "合併區名稱已更新"
+msgstr "Merged region name updated"
+
+msgid "找不到該合併區"
+msgstr "Merged region not found"
+
+msgid "請輸入新名稱"
+msgstr "Please enter a new name"
+
+msgid "合併區已解除"
+msgstr "Merged region unmerged"
+
+msgid "解除合併失敗：%(error)s"
+msgstr "Failed to unmerge: %(error)s"
+
+msgid "新名稱"
+msgstr "New name"
+
+msgid "勾選後可與其他儲存格合併為一個區塊"
+msgstr "Check to merge with other cells into one block"
+
+msgid "本樓層區塊"
+msgstr "Floor regions"
+
+msgid "其他區域"
+msgstr "Other areas"
+
+msgid "未分區"
+msgstr "Unassigned"
+
+msgid "已選"
+msgstr "Selected"
+
+msgid "格"
+msgstr " cells"
+
+msgid "圈選有效區域"
+msgstr "Mark active areas"
+
+msgid "選擇要合併的儲存格"
+msgstr "Select cells to merge"
+
+msgid "圈選有效區域：點擊格子可切換啟用/停用。"
+msgstr "Mark active areas: click a cell to toggle enable/disable."
+
+msgid "選擇要合併的儲存格：點擊有效格子可加入/取消選取（橘色為已選），再輸入區域名稱並按「合併」。"
+msgstr "Select cells to merge: click active cells to add/remove (orange = selected), then enter region name and click Merge."
+
+msgid "請先切換為「選擇要合併的儲存格」，在平面圖上點選格子後再輸入區域名稱並按「合併」。"
+msgstr "Switch to \"Select cells to merge\", click cells on the floor plan, then enter region name and click Merge."
+
+msgid "請輸入區域名稱。"
+msgstr "Please enter a region name."
+
+msgid "請先在平面圖上點選要合併的格子（切換為「選擇要合併的儲存格」後點選）。"
+msgstr "Please select cells to merge on the floor plan (switch to \"Select cells to merge\" first)."
+
+msgid "進階：顯示／編輯所有儲存格"
+msgstr "Advanced: Show / edit all cells"
+
+msgid "選擇合併區"
+msgstr "Select merged region"
+
+msgid "點擊平面圖上的區域來選擇，或點選下方合併區一次選取整個區塊"
+msgstr "Click areas on the floor plan to select, or click a merged region below to select the whole block"
+
+msgid "其他"
+msgstr "Other"

@@ -264,15 +264,168 @@
             stroke: rgba(46, 204, 113, 0.7);
         }
 
+        .cell-box.merge-selected {
+            fill: rgba(230, 126, 34, 0.45);
+            stroke: #e67e22;
+            stroke-width: 2;
+        }
+
         .cell-box:hover {
             stroke: #667eea;
             stroke-width: 2;
+        }
+
+        .floorplan-mode-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 12px 0;
+        }
+
+        .floorplan-mode-bar .floorplan-mode-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-right: 4px;
+        }
+
+        .floorplan-mode-bar .mode-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            background: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .floorplan-mode-bar .mode-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: #fff;
+        }
+
+        .floorplan-mode-bar .mode-btn.merge-mode.active {
+            border-color: #e67e22;
+            background: #e67e22;
+        }
+
+        .advanced-toggle {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 18px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .advanced-toggle:hover {
+            background: #e8e8e8;
+        }
+
+        .advanced-section {
+            margin-top: 16px;
         }
 
         .preview-help-text {
             margin-top: 8px;
             font-size: 12px;
             color: #888;
+        }
+
+        /* 合併區管理 */
+        .merged-regions-section {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+        }
+
+        .merged-regions-section h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .merge-create-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .merge-create-row input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 180px;
+        }
+
+        .merge-create-row .btn-merge {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .merge-create-row .btn-merge:hover {
+            background: #5568d3;
+        }
+
+        .merged-region-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .merged-region-card .region-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .merged-region-card .region-cells {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .merged-region-card .region-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .merged-region-card .btn-small {
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .cell-merge-check {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
         }
 
         /* 手機版響應式 */
@@ -422,10 +575,58 @@
             {% endif %}
         {% endwith %}
 
-        <!-- 平面圖 + 網格預覽（僅供視覺參考） -->
+        <!-- 合併區管理 -->
+        <div class="merged-regions-section">
+            <h3>{{ _('合併區管理') }}</h3>
+            <p style="font-size: 14px; color: #666; margin-bottom: 12px;">
+                {{ _('可將多個儲存格合併為一個命名區塊，展覽頁會以區塊為單位顯示並自成一個網格。') }}
+            </p>
+            {% if merged_regions %}
+            <p style="font-size: 13px; color: #333; margin-bottom: 10px;"><strong>{{ _('現有合併區') }}：</strong></p>
+            {% for region in merged_regions %}
+            <div class="merged-region-card">
+                <span class="region-name">{{ region.name }}</span>
+                <span class="region-cells">
+                    {{ region.cell_codes_sorted|join(', ') }}
+                </span>
+                <div class="region-actions">
+                    <form method="POST" action="{{ url_for('admin.cells_management', exhibition_public_id=exhibition.public_id, floor_code=floor.floor_code) }}" style="display:inline-flex; align-items:center; gap:6px;">
+                        <input type="hidden" name="merge_action" value="update">
+                        <input type="hidden" name="merge_region_id" value="{{ region.id }}">
+                        <input type="text" name="merge_region_new_name" value="{{ region.name }}" placeholder="{{ _('新名稱') }}" style="padding:4px 8px; font-size:13px; width:120px; border-radius:4px; border:1px solid #ddd;">
+                        <button type="submit" class="btn-small" style="background:#95a5a6;color:white;">{{ _('重新命名') }}</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin.cells_management', exhibition_public_id=exhibition.public_id, floor_code=floor.floor_code) }}" style="display:inline;" onsubmit="return confirm('{{ _('確定要解除此合併區嗎？儲存格會保留，僅取消合併。') }}');">
+                        <input type="hidden" name="merge_action" value="delete">
+                        <input type="hidden" name="merge_region_id" value="{{ region.id }}">
+                        <button type="submit" class="btn-small" style="background:#e74c3c;color:white;">{{ _('解除合併') }}</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+            <form id="merge-form" method="POST" action="{{ url_for('admin.cells_management', exhibition_public_id=exhibition.public_id, floor_code=floor.floor_code) }}">
+                <input type="hidden" name="merge_action" value="create">
+                <div id="merge_cell_ids_container"></div>
+                <div class="merge-create-row">
+                    <label for="merge_region_name" style="font-weight:600;">{{ _('建立合併區：') }}</label>
+                    <input type="text" id="merge_region_name" name="merge_region_name" placeholder="{{ _('區域名稱（例如：主展區）') }}">
+                    <button type="button" id="merge-submit-btn" class="btn-merge">{{ _('合併選取的儲存格') }}</button>
+                    <span id="merge-selection-hint" style="font-size: 13px; color: #888;">{{ _('請先切換為「選擇要合併的儲存格」，在平面圖上點選格子後再輸入區域名稱並按「合併」。') }}</span>
+                    <span id="merge-selected-count" style="font-size: 13px; font-weight: 600; color: #e67e22; display: none;"></span>
+                </div>
+            </form>
+        </div>
+
+        <!-- 平面圖：圈選有效區域 或 選擇要合併的儲存格 -->
         <div class="floorplan-preview-section">
             <div class="floorplan-preview-title">
-                {{ _('樓層平面圖區域預覽') }}（{{ floor.floor_code }}）
+                {{ _('樓層平面圖') }}（{{ floor.floor_code }}）
+            </div>
+            <div class="floorplan-mode-bar" role="group" aria-label="{{ _('平面圖操作模式') }}">
+                <span class="floorplan-mode-label">{{ _('操作模式：') }}</span>
+                <button type="button" class="mode-btn active" data-mode="active" id="mode-active" aria-pressed="true">{{ _('圈選有效區域') }}</button>
+                <button type="button" class="mode-btn" data-mode="merge" id="mode-merge" aria-pressed="false">{{ _('選擇要合併的儲存格') }}</button>
             </div>
             <div class="floorplan-preview-container" id="floorplanContainer">
                 <div id="floorplanStage" class="floorplan-stage">
@@ -441,59 +642,74 @@
                     </div>
                 </div>
             </div>
-            <p class="preview-help-text">
-                {{ _('可直接點擊格子切換「啟用/停用」，並會同步更新下方表格。') }}
+            <p class="preview-help-text" id="previewHelpText">
+                {{ _('圈選有效區域：點擊格子可切換啟用/停用。') }}
             </p>
         </div>
 
-        <form method="POST" action="{{ url_for('admin.cells_management', exhibition_public_id=exhibition.public_id, floor_code=floor.floor_code) }}">
-            <div class="cells-table-container">
-                <table class="cells-table">
-                    <thead>
-                        <tr>
-                            <th>{{ _('區域代碼') }}</th>
-                            <th>{{ _('位置') }}</th>
-                            <th>{{ _('名稱') }}</th>
-                            <th>{{ _('啟用狀態') }}</th>
-                            <th>{{ _('媒體數量') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for cell in cells %}
-                            <tr {% if not cell.is_active %}class="cell-inactive"{% endif %}>
-                                <td class="cell-code">{{ cell.cell_code }}</td>
-                                <td>({{ cell.row }}, {{ cell.col }})</td>
-                                <td>
-                                    <input type="text" 
-                                           name="cell_name_{{ cell.id }}" 
-                                           value="{{ (cell.name or '').replace('區域', _('區域')) }}" 
-                                           class="cell-name-input"
-                                           placeholder="{{ _('區域名稱（可選）') }}">
-                                </td>
-                                <td>
-                                    <input type="checkbox" 
-                                           name="cell_active_{{ cell.id }}" 
-                                           {% if cell.is_active %}checked{% endif %}
-                                           class="cell-active-checkbox">
-                                </td>
-                                <td>
-                                    <span class="media-count">{{ cell.media_count or 0 }}</span>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div style="margin-top: 24px;">
+            <button type="button" class="advanced-toggle" id="advancedToggle" aria-expanded="false">{{ _('進階：顯示／編輯所有儲存格') }}</button>
+            <div class="advanced-section" id="advancedSection" style="display: none;">
+                <form id="cells-form" method="POST" action="{{ url_for('admin.cells_management', exhibition_public_id=exhibition.public_id, floor_code=floor.floor_code) }}">
+                    <div class="cells-table-container">
+                        <table class="cells-table">
+                            <thead>
+                                <tr>
+                                    <th>{{ _('區域代碼') }}</th>
+                                    <th>{{ _('位置') }}</th>
+                                    <th>{{ _('名稱') }}</th>
+                                    <th>{{ _('所屬合併區') }}</th>
+                                    <th>{{ _('啟用狀態') }}</th>
+                                    <th>{{ _('媒體數量') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cell in cells %}
+                                    <tr {% if not cell.is_active %}class="cell-inactive"{% endif %}>
+                                        <td class="cell-code">{{ cell.cell_code }}</td>
+                                        <td>({{ cell.row }}, {{ cell.col }})</td>
+                                        <td>
+                                            <input type="text" 
+                                                   name="cell_name_{{ cell.id }}" 
+                                                   value="{{ (cell.name or '').replace('區域', _('區域')) }}" 
+                                                   class="cell-name-input"
+                                                   placeholder="{{ _('區域名稱（可選）') }}">
+                                        </td>
+                                        <td>
+                                            {% if cell.merged_region_id and cell.merged_region %}
+                                            <span style="font-weight:600; color:#667eea;">{{ cell.merged_region.name }}</span>
+                                            {% else %}
+                                            <span style="color:#999;">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <input type="checkbox" 
+                                                   name="cell_active_{{ cell.id }}" 
+                                                   {% if cell.is_active %}checked{% endif %}
+                                                   class="cell-active-checkbox">
+                                        </td>
+                                        <td>
+                                            <span class="media-count">{{ cell.media_count or 0 }}</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            {{ _('儲存變更') }}
+                        </button>
+                    </div>
+                </form>
             </div>
+        </div>
 
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    {{ _('儲存變更') }}
-                </button>
-                <a href="{{ url_for('admin.floors_management', exhibition_public_id=exhibition.public_id) }}" class="btn btn-secondary">
-                    {{ _('返回樓層列表') }}
-                </a>
-            </div>
-        </form>
+        <div class="form-actions" style="margin-top: 24px; border: none; padding: 0;">
+            <a href="{{ url_for('admin.floors_management', exhibition_public_id=exhibition.public_id) }}" class="btn btn-secondary">
+                {{ _('返回樓層列表') }}
+            </a>
+        </div>
     </div>
 
     <script>
@@ -506,26 +722,47 @@
                 row: {{ cell.row }},
                 col: {{ cell.col }},
                 is_active: {{ 'true' if cell.is_active else 'false' }},
-                media_count: {{ cell.media_count or 0 }}
+                media_count: {{ cell.media_count or 0 }},
+                merged_region_id: {{ cell.merged_region_id if cell.merged_region_id else 'null' }}
             }{% if not loop.last %},{% endif %}
         {% endfor %}
         ];
 
+        const mergedRegionsForPlan = {{ merged_regions_for_plan | tojson }};
         const floorData = {
             width: {{ floor.width_meters or 0 }},
             height: {{ floor.height_meters or 0 }},
             gridSize: {{ floor.grid_size or 1 }}
         };
 
+        // 平面圖模式：'active' = 圈選有效區域，'merge' = 選擇要合併的儲存格
+        let planMode = 'active';
+        let mergeSelectionSet = new Set();
+
+        const modeActiveText = "{{ _('圈選有效區域：點擊格子可切換啟用/停用。') }}";
+        const modeMergeText = "{{ _('選擇要合併的儲存格：點擊有效格子可加入/取消選取（橘色為已選），再輸入區域名稱並按「合併」。') }}";
+
+        function updateMergeSelectionUI() {
+            const hint = document.getElementById('merge-selection-hint');
+            const countEl = document.getElementById('merge-selected-count');
+            if (planMode === 'merge' && mergeSelectionSet.size > 0) {
+                if (hint) hint.style.display = 'none';
+                if (countEl) {
+                    countEl.textContent = "{{ _('已選') }} " + mergeSelectionSet.size + " {{ _('格') }}";
+                    countEl.style.display = 'inline';
+                }
+            } else {
+                if (hint) hint.style.display = 'inline';
+                if (countEl) countEl.style.display = 'none';
+            }
+        }
+
         function renderPreviewGrid() {
             const img = document.getElementById('floorplanImage');
             const svg = document.getElementById('cellGrid');
             if (!img || !svg) return;
 
-            // 確保圖片已載入完成
-            if (!img.complete || img.naturalWidth === 0) {
-                return;
-            }
+            if (!img.complete || img.naturalWidth === 0) return;
 
             const displayWidth = Math.round(img.offsetWidth);
             const displayHeight = Math.round(img.offsetHeight);
@@ -541,9 +778,27 @@
             const cellWidth = displayWidth / totalCols;
             const cellHeight = displayHeight / totalRows;
 
+            const cellKey = (r, c) => r + ',' + c;
+            const mergedRegionByKey = {};
+            cellsData.forEach(cell => {
+                mergedRegionByKey[cellKey(cell.row, cell.col)] = cell.merged_region_id != null ? cell.merged_region_id : null;
+            });
+            function getMergedRegionId(row, col) {
+                return mergedRegionByKey[cellKey(row, col)] != null ? mergedRegionByKey[cellKey(row, col)] : undefined;
+            }
+            function isBoundaryEdge(cell, side) {
+                const rid = cell.merged_region_id;
+                if (rid == null) return true;
+                let nr = cell.row, nc = cell.col;
+                if (side === 'top') nr--; else if (side === 'bottom') nr++; else if (side === 'left') nc--; else if (side === 'right') nc++;
+                return getMergedRegionId(nr, nc) !== rid;
+            }
+
             cellsData.forEach(cell => {
                 const x = cell.col * cellWidth;
                 const y = cell.row * cellHeight;
+                const isMerged = cell.merged_region_id != null;
+
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 rect.setAttribute('x', x);
                 rect.setAttribute('y', y);
@@ -552,28 +807,111 @@
                 rect.setAttribute('data-cell-id', String(cell.id));
 
                 let cls = 'cell-box';
-                if (!cell.is_active) {
-                    cls += ' inactive';
-                }
-                if (cell.media_count > 0) {
-                    cls += ' has-media';
-                }
+                if (!cell.is_active) cls += ' inactive';
+                if (cell.media_count > 0) cls += ' has-media';
+                if (planMode === 'merge' && mergeSelectionSet.has(cell.id)) cls += ' merge-selected';
                 rect.setAttribute('class', cls);
 
-                // tooltip
+                const isMergeSelected = planMode === 'merge' && mergeSelectionSet.has(cell.id);
+                if (!cell.is_active) {
+                    rect.style.fill = 'rgba(149, 165, 166, 0.2)';
+                    rect.style.stroke = 'rgba(149, 165, 166, 0.6)';
+                } else if (isMergeSelected) {
+                    rect.style.fill = 'rgba(230, 126, 34, 0.45)';
+                    rect.style.stroke = '#e67e22';
+                    rect.style.strokeWidth = '2';
+                } else if (isMerged) {
+                    rect.style.fill = cell.media_count > 0 ? 'rgba(46, 204, 113, 0.28)' : 'rgba(230, 126, 34, 0.22)';
+                    rect.style.stroke = 'none';
+                } else {
+                    rect.style.fill = cell.media_count > 0 ? 'rgba(46, 204, 113, 0.28)' : 'rgba(102, 126, 234, 0.16)';
+                    rect.style.stroke = 'rgba(102, 126, 234, 0.45)';
+                }
+
                 const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-                title.textContent = `${cell.cell_code} (${cell.row}, ${cell.col})`;
+                title.textContent = isMerged ? '' : `${cell.cell_code} (${cell.row}, ${cell.col})`;
                 rect.appendChild(title);
 
-                // 點擊切換啟用/停用，並同步表格 checkbox
                 rect.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    toggleCellActive(cell.id);
+                    if (planMode === 'merge') {
+                        if (!cell.is_active) return;
+                        if (mergeSelectionSet.has(cell.id)) {
+                            mergeSelectionSet.delete(cell.id);
+                        } else {
+                            mergeSelectionSet.add(cell.id);
+                        }
+                        updateMergeSelectionUI();
+                        renderPreviewGrid();
+                    } else {
+                        toggleCellActive(cell.id);
+                        renderPreviewGrid();
+                    }
                 });
 
                 svg.appendChild(rect);
+
+                if (isMerged) {
+                    const strokeColor = 'rgba(230, 126, 34, 0.7)';
+                    const strokeW = 1.5;
+                    if (isBoundaryEdge(cell, 'top')) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x); line.setAttribute('y1', y);
+                        line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y);
+                        line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+                        line.setAttribute('pointer-events', 'none');
+                        svg.appendChild(line);
+                    }
+                    if (isBoundaryEdge(cell, 'bottom')) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x); line.setAttribute('y1', y + cellHeight);
+                        line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y + cellHeight);
+                        line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+                        line.setAttribute('pointer-events', 'none');
+                        svg.appendChild(line);
+                    }
+                    if (isBoundaryEdge(cell, 'left')) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x); line.setAttribute('y1', y);
+                        line.setAttribute('x2', x); line.setAttribute('y2', y + cellHeight);
+                        line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+                        line.setAttribute('pointer-events', 'none');
+                        svg.appendChild(line);
+                    }
+                    if (isBoundaryEdge(cell, 'right')) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x + cellWidth); line.setAttribute('y1', y);
+                        line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y + cellHeight);
+                        line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+                        line.setAttribute('pointer-events', 'none');
+                        svg.appendChild(line);
+                    }
+                }
             });
+
+            if (mergedRegionsForPlan && mergedRegionsForPlan.length > 0) {
+                mergedRegionsForPlan.forEach(region => {
+                    if (!region.cells || region.cells.length === 0) return;
+                    const rows = region.cells.map(c => c.row);
+                    const cols = region.cells.map(c => c.col);
+                    const minR = Math.min(...rows), maxR = Math.max(...rows);
+                    const minC = Math.min(...cols), maxC = Math.max(...cols);
+                    const centerX = (minC + maxC + 1) * cellWidth / 2;
+                    const centerY = (minR + maxR + 1) * cellHeight / 2;
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', centerX);
+                    text.setAttribute('y', centerY);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dominant-baseline', 'middle');
+                    text.setAttribute('fill', '#333');
+                    text.setAttribute('font-size', Math.max(12, Math.min(cellWidth, cellHeight) * 0.4));
+                    text.setAttribute('font-weight', '600');
+                    text.setAttribute('pointer-events', 'none');
+                    text.textContent = region.name || '';
+                    svg.appendChild(text);
+                });
+            }
         }
 
         function toggleCellActive(cellId) {
@@ -605,7 +943,6 @@
             }
         }
 
-        // 若使用者在表格勾選/取消，也同步回圖上的格子
         (function bindTableToPreview() {
             cellsData.forEach(cell => {
                 const checkbox = document.querySelector(`input[name="cell_active_${cell.id}"]`);
@@ -618,12 +955,74 @@
             });
         })();
 
-        window.addEventListener('resize', function () {
-            try {
+        // 模式切換（圈選有效區域 / 選擇要合併的儲存格）- 用 id 綁定確保按鈕一定有反應
+        function bindModeButtons() {
+            const btnActive = document.getElementById('mode-active');
+            const btnMerge = document.getElementById('mode-merge');
+            const help = document.getElementById('previewHelpText');
+            function setMode(mode) {
+                planMode = mode;
+                if (btnActive) {
+                    btnActive.classList.remove('active', 'merge-mode');
+                    btnActive.setAttribute('aria-pressed', mode === 'active' ? 'true' : 'false');
+                    if (mode === 'active') btnActive.classList.add('active');
+                }
+                if (btnMerge) {
+                    btnMerge.classList.remove('active', 'merge-mode');
+                    btnMerge.setAttribute('aria-pressed', mode === 'merge' ? 'true' : 'false');
+                    if (mode === 'merge') {
+                        btnMerge.classList.add('active', 'merge-mode');
+                    }
+                }
+                if (help) help.textContent = mode === 'merge' ? modeMergeText : modeActiveText;
+                if (mode !== 'merge') mergeSelectionSet.clear();
+                updateMergeSelectionUI();
                 renderPreviewGrid();
-            } catch (e) {
-                console.error(e);
             }
+            if (btnActive) btnActive.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setMode('active'); });
+            if (btnMerge) btnMerge.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setMode('merge'); });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bindModeButtons);
+        } else {
+            bindModeButtons();
+        }
+
+        // 合併表單：從平面圖選取送出
+        document.getElementById('merge-submit-btn').addEventListener('click', function () {
+            const nameInput = document.getElementById('merge_region_name');
+            const name = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
+            if (!name) {
+                alert("{{ _('請輸入區域名稱。') }}");
+                return;
+            }
+            if (mergeSelectionSet.size === 0) {
+                alert("{{ _('請先在平面圖上點選要合併的格子（切換為「選擇要合併的儲存格」後點選）。') }}");
+                return;
+            }
+            const container = document.getElementById('merge_cell_ids_container');
+            if (!container) return;
+            container.innerHTML = '';
+            mergeSelectionSet.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'merge_cell_ids';
+                input.value = String(id);
+                container.appendChild(input);
+            });
+            document.getElementById('merge-form').submit();
+        });
+
+        // 進階區塊收合
+        document.getElementById('advancedToggle').addEventListener('click', function () {
+            const section = document.getElementById('advancedSection');
+            const open = section.style.display !== 'none';
+            section.style.display = open ? 'none' : 'block';
+            this.setAttribute('aria-expanded', open ? 'false' : 'true');
+        });
+
+        window.addEventListener('resize', function () {
+            try { renderPreviewGrid(); } catch (e) { console.error(e); }
         });
     </script>
 </body>

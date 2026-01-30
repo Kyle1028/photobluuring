@@ -209,6 +209,12 @@
         font-weight: 600;
         white-space: nowrap;
       }
+
+      .cell-badge-clickable:hover {
+        background: #667eea;
+        color: white;
+        border-color: #5568d3;
+      }
       
       .empty-photos {
         text-align: center;
@@ -468,6 +474,29 @@
             </div>
           </div>
         </div>
+
+        {% if cell_groups %}
+        <!-- 只顯示合併區／區塊名稱，不顯示儲存格編號 -->
+        <div class="cell-groups-section" style="margin-top: 24px;">
+          <h3 style="font-size: 18px; color: #333; margin-bottom: 16px;">{{ _('本樓層區塊') }}</h3>
+          <div class="cell-group-grid" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            {% for group in cell_groups %}
+              {% set group_name = group.region_name or _('未分區') %}
+              {% set first_cell = group.cells[0] if group.cells else None %}
+              {% if first_cell %}
+              <button type="button" 
+                      class="cell-badge cell-badge-clickable" 
+                      data-floor-code="{{ selected_floor.floor_code }}"
+                      data-cell-code="{{ first_cell.cell_code }}"
+                      data-display-name="{{ group_name|e }}"
+                      style="display: inline-block; background: #eef2ff; color: #4c51bf; border: 1px solid #c7d2fe; border-radius: 999px; padding: 6px 12px; margin: 0; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                {{ group_name }}
+              </button>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
       </div>
       {% endif %}
       
@@ -586,6 +615,7 @@
         height: {{ selected_floor.height_meters }},
         gridSize: {{ selected_floor.grid_size }}
       };
+      const mergedRegionsForPlan = {{ merged_regions_for_plan | tojson }};
 
       // 縮放/平移狀態
       let fpScale = 1;
@@ -709,11 +739,31 @@
           svg.appendChild(boundaryRect);
         }
         
+        // 合併區查詢：(row,col) -> merged_region_id（用於只畫合併區外框、不畫內部格線）
+        const cellKey = (r, c) => r + ',' + c;
+        const mergedRegionByKey = {};
+        cellsData.forEach(cell => {
+          mergedRegionByKey[cellKey(cell.row, cell.col)] = cell.merged_region_id || null;
+        });
+        function getMergedRegionId(row, col) {
+          return mergedRegionByKey[cellKey(row, col)] != null ? mergedRegionByKey[cellKey(row, col)] : undefined;
+        }
+        function isBoundaryEdge(cell, side) {
+          const rid = cell.merged_region_id;
+          if (rid == null) return true;
+          let nr = cell.row, nc = cell.col;
+          if (side === 'top') nr--; else if (side === 'bottom') nr++; else if (side === 'left') nc--; else if (side === 'right') nc++;
+          const neighborId = getMergedRegionId(nr, nc);
+          return neighborId !== rid;
+        }
+
         // 繪製每個有效網格
         cellsData.forEach(cell => {
           const x = cell.col * cellWidth;
           const y = cell.row * cellHeight;
-          
+          const isMerged = cell.merged_region_id != null;
+          const hasMedia = (cell.media_count || 0) > 0;
+
           const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
           rect.setAttribute('x', x);
           rect.setAttribute('y', y);
@@ -723,27 +773,86 @@
           rect.setAttribute('data-cell-code', cell.cell_code);
           rect.setAttribute('data-floor-code', floorData.code);
           rect.style.cursor = 'pointer';
-          // 若該格子已有媒體，預設顯示更明顯（讓使用者看得出「這裡有內容」）
-          const hasMedia = (cell.media_count || 0) > 0;
-          // 使用更清晰的顏色區分有效網格
-          rect.style.fill = hasMedia ? 'rgba(46, 204, 113, 0.25)' : 'rgba(102, 126, 234, 0.15)';
-          // 恢復網格線顯示，但使用較細的線條避免視覺混亂
-          rect.style.stroke = 'rgba(102, 126, 234, 0.4)';
-          rect.style.strokeWidth = '1';
+          if (isMerged) {
+            rect.style.fill = hasMedia ? 'rgba(46, 204, 113, 0.28)' : 'rgba(230, 126, 34, 0.22)';
+            rect.style.stroke = 'none';
+          } else {
+            rect.style.fill = hasMedia ? 'rgba(46, 204, 113, 0.25)' : 'rgba(102, 126, 234, 0.15)';
+            rect.style.stroke = 'rgba(102, 126, 234, 0.4)';
+            rect.style.strokeWidth = '1';
+          }
           rect.addEventListener('mouseenter', function() {
-            this.style.fill = hasMedia ? 'rgba(46, 204, 113, 0.35)' : 'rgba(102, 126, 234, 0.25)';
-            this.style.stroke = '#667eea';
-            this.style.strokeWidth = '2';
+            this.style.fill = isMerged
+              ? (hasMedia ? 'rgba(46, 204, 113, 0.38)' : 'rgba(230, 126, 34, 0.35)')
+              : (hasMedia ? 'rgba(46, 204, 113, 0.35)' : 'rgba(102, 126, 234, 0.25)');
+            if (!isMerged) { this.style.stroke = '#667eea'; this.style.strokeWidth = '2'; }
           });
           rect.addEventListener('mouseleave', function() {
-            this.style.fill = hasMedia ? 'rgba(46, 204, 113, 0.25)' : 'rgba(102, 126, 234, 0.15)';
-            this.style.stroke = 'rgba(102, 126, 234, 0.4)';
-            this.style.strokeWidth = '1';
+            this.style.fill = isMerged
+              ? (hasMedia ? 'rgba(46, 204, 113, 0.28)' : 'rgba(230, 126, 34, 0.22)')
+              : (hasMedia ? 'rgba(46, 204, 113, 0.25)' : 'rgba(102, 126, 234, 0.15)');
+            if (!isMerged) { this.style.stroke = 'rgba(102, 126, 234, 0.4)'; this.style.strokeWidth = '1'; }
           });
-          // 點擊功能現在通過 pointerup 事件處理（在拖移邏輯中）
-          
           svg.appendChild(rect);
+
+          // 合併區：只畫與非合併區相鄰的外框線，中間不畫格線
+          if (isMerged) {
+            const strokeColor = 'rgba(230, 126, 34, 0.7)';
+            const strokeW = 1.5;
+            if (isBoundaryEdge(cell, 'top')) {
+              const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              line.setAttribute('x1', x); line.setAttribute('y1', y);
+              line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y);
+              line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+              svg.appendChild(line);
+            }
+            if (isBoundaryEdge(cell, 'bottom')) {
+              const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              line.setAttribute('x1', x); line.setAttribute('y1', y + cellHeight);
+              line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y + cellHeight);
+              line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+              svg.appendChild(line);
+            }
+            if (isBoundaryEdge(cell, 'left')) {
+              const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              line.setAttribute('x1', x); line.setAttribute('y1', y);
+              line.setAttribute('x2', x); line.setAttribute('y2', y + cellHeight);
+              line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+              svg.appendChild(line);
+            }
+            if (isBoundaryEdge(cell, 'right')) {
+              const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              line.setAttribute('x1', x + cellWidth); line.setAttribute('y1', y);
+              line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y + cellHeight);
+              line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+              svg.appendChild(line);
+            }
+          }
         });
+
+        // 合併區中央顯示區域名稱（僅合併區顯示名稱，一般格子不顯示）
+        if (mergedRegionsForPlan && mergedRegionsForPlan.length > 0) {
+          mergedRegionsForPlan.forEach(region => {
+            if (!region.cells || region.cells.length === 0) return;
+            const rows = region.cells.map(c => c.row);
+            const cols = region.cells.map(c => c.col);
+            const minR = Math.min(...rows), maxR = Math.max(...rows);
+            const minC = Math.min(...cols), maxC = Math.max(...cols);
+            const centerX = (minC + maxC + 1) * cellWidth / 2;
+            const centerY = (minR + maxR + 1) * cellHeight / 2;
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', centerX);
+            text.setAttribute('y', centerY);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'middle');
+            text.setAttribute('fill', '#333');
+            text.setAttribute('font-size', Math.max(12, Math.min(cellWidth, cellHeight) * 0.4));
+            text.setAttribute('font-weight', '600');
+            text.setAttribute('pointer-events', 'none');
+            text.textContent = region.name || '';
+            svg.appendChild(text);
+          });
+        }
       }
 
       window.addEventListener('resize', () => {
@@ -900,12 +1009,12 @@
         applyFloorplanTransform();
       })();
       
-      function loadCellMedia(floorCode, cellCode) {
+      function loadCellMedia(floorCode, cellCode, displayName) {
         const modal = document.getElementById('cellMediaModal');
         const title = document.getElementById('cellModalTitle');
         const content = document.getElementById('cellMediaContent');
         
-        title.textContent = `{{ _('區域') }} ${cellCode} - {{ _('媒體') }}`;
+        title.textContent = displayName ? (displayName + ' - {{ _('媒體') }}') : '{{ _('媒體') }}';
         content.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">{{ _("載入中...") }}</p>';
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -913,6 +1022,8 @@
         fetch(`{{ url_for('exhibition_detail', exhibition_public_id=exhibition.public_id) }}/floors/${floorCode}/cells/${cellCode}/media`)
           .then(response => response.json())
           .then(data => {
+            if (data.merged_region_name) title.textContent = data.merged_region_name + ' - {{ _('媒體') }}';
+            else if (!displayName) title.textContent = '{{ _('媒體') }}';
             if (data.media && data.media.length > 0) {
               let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">';
               data.media.forEach(media => {
@@ -951,6 +1062,16 @@
         if (e.target === this) {
           closeCellMediaModal();
         }
+      });
+
+      // 本樓層區塊按鈕：從 data 屬性讀取參數，避免 HTML 引號問題
+      document.querySelector('.cell-groups-section')?.addEventListener('click', function(e) {
+        const btn = e.target.closest('.cell-badge-clickable[data-cell-code]');
+        if (!btn) return;
+        const floorCode = btn.getAttribute('data-floor-code');
+        const cellCode = btn.getAttribute('data-cell-code');
+        const displayName = btn.getAttribute('data-display-name') || '';
+        if (floorCode && cellCode) loadCellMedia(floorCode, cellCode, displayName);
       });
       {% endif %}
     </script>

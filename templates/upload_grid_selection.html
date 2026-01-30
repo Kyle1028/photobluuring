@@ -302,7 +302,17 @@
                     {% endfor %}
                 </select>
             </div>
-            <p class="help-text">{{ _('點擊平面圖上的區域來選擇，可選擇多個區域') }}</p>
+            <p class="help-text">{{ _('點擊平面圖上的區域來選擇，或點選下方合併區一次選取整個區塊') }}</p>
+            {% if merged_regions %}
+            <div class="merge-regions-selector" style="margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                <span style="font-weight: 600; color: #333;">{{ _('選擇合併區') }}：</span>
+                {% for region in merged_regions %}
+                <button type="button" class="btn-merge-region" data-cell-ids="{{ region.cell_ids|join(',') }}" style="padding: 6px 14px; border-radius: 999px; border: 1px solid #c7d2fe; background: #eef2ff; color: #4c51bf; font-size: 13px; font-weight: 600; cursor: pointer;">
+                    {{ region.name }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         <form method="POST" enctype="multipart/form-data" id="uploadForm">
@@ -360,6 +370,8 @@
 
     <script>
         const cellsData = {{ cells | tojson }};
+        const mergedRegionsData = {{ merged_regions | tojson if merged_regions else '[]' }};
+        const mergedRegionsForPlan = {{ merged_regions_for_plan | tojson if merged_regions_for_plan else '[]' }};
         const floorData = {
             code: "{{ selected_floor.floor_code }}",
             width: {{ selected_floor.width_meters }},
@@ -432,15 +444,32 @@
             
             // 清空 SVG
             svg.innerHTML = '';
-            
-            // 繪製每個區域
+
+            const cellKey = (r, c) => r + ',' + c;
+            const mergedRegionByKey = {};
             cellsData.forEach(cell => {
-                if (!cell.is_active) return; // 跳過無效區域
+                if (cell.is_active) mergedRegionByKey[cellKey(cell.row, cell.col)] = cell.merged_region_id || null;
+            });
+            function getMergedRegionId(row, col) {
+                return mergedRegionByKey[cellKey(row, col)] != null ? mergedRegionByKey[cellKey(row, col)] : undefined;
+            }
+            function isBoundaryEdge(cell, side) {
+                const rid = cell.merged_region_id;
+                if (rid == null) return true;
+                let nr = cell.row, nc = cell.col;
+                if (side === 'top') nr--; else if (side === 'bottom') nr++; else if (side === 'left') nc--; else if (side === 'right') nc++;
+                return getMergedRegionId(nr, nc) !== rid;
+            }
+            
+            // 繪製每個區域：合併區無內部格線、顯示區域名稱
+            cellsData.forEach(cell => {
+                if (!cell.is_active) return;
             
                 const x = cell.col * cellWidth;
                 const y = cell.row * cellHeight;
                 const isSelected = selectedCellIds.has(cell.id);
                 const hasMedia = (cell.media_count || 0) > 0;
+                const isMerged = cell.merged_region_id != null;
                 
                 const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 r.setAttribute('x', x);
@@ -448,16 +477,84 @@
                 r.setAttribute('width', cellWidth);
                 r.setAttribute('height', cellHeight);
                 r.setAttribute('class', `cell-box ${isSelected ? 'selected' : ''}`);
-                // 已有媒體的格子用更明顯顏色提示
-                if (hasMedia && !isSelected) {
-                    r.style.fill = 'rgba(46, 204, 113, 0.18)';
-                    r.style.stroke = 'rgba(46, 204, 113, 0.55)';
+                if (isMerged) {
+                    r.style.fill = isSelected ? 'rgba(46, 204, 113, 0.55)' : (hasMedia ? 'rgba(46, 204, 113, 0.2)' : 'rgba(230, 126, 34, 0.22)');
+                    r.style.stroke = isSelected ? 'rgba(39, 174, 96, 0.9)' : 'none';
+                    if (isSelected) r.style.strokeWidth = '2.5';
+                } else {
+                    if (hasMedia && !isSelected) {
+                        r.style.fill = 'rgba(46, 204, 113, 0.18)';
+                        r.style.stroke = 'rgba(46, 204, 113, 0.55)';
+                    } else {
+                        r.style.fill = isSelected ? 'rgba(46, 204, 113, 0.5)' : 'rgba(102, 126, 234, 0.12)';
+                        r.style.stroke = isSelected ? 'rgba(39, 174, 96, 0.9)' : 'rgba(102, 126, 234, 0.35)';
+                        if (isSelected) r.style.strokeWidth = '2.5';
+                    }
                 }
                 r.setAttribute('data-cell-id', cell.id);
                 r.setAttribute('data-cell-code', cell.cell_code);
-                // 選擇功能現在通過 pointerup 事件處理（在拖移邏輯中）
                 svg.appendChild(r);
+
+                if (isMerged) {
+                    const strokeColor = 'rgba(230, 126, 34, 0.7)';
+                    const strokeW = 1.5;
+                    if (isBoundaryEdge(cell, 'top')) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x); line.setAttribute('y1', y);
+                        line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y);
+                        line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+                        line.setAttribute('pointer-events', 'none');
+                        svg.appendChild(line);
+                    }
+                    if (isBoundaryEdge(cell, 'bottom')) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x); line.setAttribute('y1', y + cellHeight);
+                        line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y + cellHeight);
+                        line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+                        line.setAttribute('pointer-events', 'none');
+                        svg.appendChild(line);
+                    }
+                    if (isBoundaryEdge(cell, 'left')) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x); line.setAttribute('y1', y);
+                        line.setAttribute('x2', x); line.setAttribute('y2', y + cellHeight);
+                        line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+                        line.setAttribute('pointer-events', 'none');
+                        svg.appendChild(line);
+                    }
+                    if (isBoundaryEdge(cell, 'right')) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x + cellWidth); line.setAttribute('y1', y);
+                        line.setAttribute('x2', x + cellWidth); line.setAttribute('y2', y + cellHeight);
+                        line.setAttribute('stroke', strokeColor); line.setAttribute('stroke-width', strokeW);
+                        line.setAttribute('pointer-events', 'none');
+                        svg.appendChild(line);
+                    }
+                }
             });
+
+            if (mergedRegionsForPlan && mergedRegionsForPlan.length > 0) {
+                mergedRegionsForPlan.forEach(region => {
+                    if (!region.cells || region.cells.length === 0) return;
+                    const rows = region.cells.map(c => c.row);
+                    const cols = region.cells.map(c => c.col);
+                    const minR = Math.min(...rows), maxR = Math.max(...rows);
+                    const minC = Math.min(...cols), maxC = Math.max(...cols);
+                    const centerX = (minC + maxC + 1) * cellWidth / 2;
+                    const centerY = (minR + maxR + 1) * cellHeight / 2;
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', centerX);
+                    text.setAttribute('y', centerY);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dominant-baseline', 'middle');
+                    text.setAttribute('fill', '#333');
+                    text.setAttribute('font-size', Math.max(12, Math.min(cellWidth, cellHeight) * 0.4));
+                    text.setAttribute('font-weight', '600');
+                    text.setAttribute('pointer-events', 'none');
+                    text.textContent = region.name || '';
+                    svg.appendChild(text);
+                });
+            }
         }
         
         // 將 renderCells 暴露到全域，讓縮放函數可以調用
@@ -677,32 +774,31 @@
             // 檢查格子是否是有效的
             const cell = cellsData.find(c => c.id === cellId);
             if (!cell || !cell.is_active) {
-                // 無效的格子，不允許選擇
                 return;
             }
-            
-            if (selectedCellIds.has(cellId)) {
-                selectedCellIds.delete(cellId);
+            const activeCells = cellsData.filter(c => c.is_active);
+            const activeIds = new Set(activeCells.map(c => c.id));
+
+            if (cell.merged_region_id != null) {
+                // 合併區：取得該區所有有效儲存格 ID，整區一併選取或取消
+                const regionCellIds = activeCells
+                    .filter(c => c.merged_region_id === cell.merged_region_id)
+                    .map(c => c.id);
+                const allSelected = regionCellIds.every(id => selectedCellIds.has(id));
+                if (allSelected) {
+                    regionCellIds.forEach(id => selectedCellIds.delete(id));
+                } else {
+                    regionCellIds.forEach(id => { if (activeIds.has(id)) selectedCellIds.add(id); });
+                }
             } else {
-                selectedCellIds.add(cellId);
+                if (selectedCellIds.has(cellId)) {
+                    selectedCellIds.delete(cellId);
+                } else {
+                    selectedCellIds.add(cellId);
+                }
             }
             updateSelectedCells();
-            
-            // 只更新選擇狀態，不重新渲染整個網格，避免網格跑掉
-            const svg = document.getElementById('cellGrid');
-            if (svg) {
-                const rects = svg.querySelectorAll('rect[data-cell-id="' + cellId + '"]');
-                rects.forEach(rect => {
-                    if (selectedCellIds.has(cellId)) {
-                        rect.classList.add('selected');
-                    } else {
-                        rect.classList.remove('selected');
-                    }
-                });
-            } else {
-                // 如果 SVG 不存在，才重新渲染
-                renderCells();
-            }
+            renderCells();
         }
         
         function updateSelectedCells() {
@@ -716,12 +812,18 @@
                 tagsDiv.innerHTML = '<span style="color: #999;">{{ _("尚未選擇任何區域") }}</span>';
                 document.getElementById('submitBtn').disabled = true;
             } else {
+                const regionNamesShown = new Set();
                 cellsData.forEach(cell => {
-                    if (selectedCellIds.has(cell.id)) {
-                        const tag = document.createElement('span');
-                        tag.className = 'selected-cell-tag';
-                        tag.textContent = cell.cell_code;
-                        tagsDiv.appendChild(tag);
+                    if (!selectedCellIds.has(cell.id)) return;
+                    if (cell.merged_region_id != null) {
+                        const region = mergedRegionsData.find(r => r.id === cell.merged_region_id);
+                        if (region && !regionNamesShown.has(region.name)) {
+                            regionNamesShown.add(region.name);
+                            const tag = document.createElement('span');
+                            tag.className = 'selected-cell-tag';
+                            tag.textContent = region.name;
+                            tagsDiv.appendChild(tag);
+                        }
                     }
                 });
                 document.getElementById('submitBtn').disabled = false;
@@ -739,6 +841,21 @@
             });
         }
         
+        // 合併區按鈕：一次選取該區所有儲存格
+        document.querySelectorAll('.btn-merge-region').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const idsStr = this.getAttribute('data-cell-ids');
+                if (!idsStr) return;
+                const ids = idsStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+                const activeIds = new Set(cellsData.filter(c => c.is_active).map(c => c.id));
+                ids.forEach(id => {
+                    if (activeIds.has(id)) selectedCellIds.add(id);
+                });
+                updateSelectedCells();
+                renderCells();
+            });
+        });
+
         // 初始化
         document.getElementById('mediaFile').addEventListener('change', function() {
             if (this.files.length > 0 && selectedCellIds.size > 0) {

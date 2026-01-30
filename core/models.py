@@ -230,6 +230,31 @@ class Exhibition(db.Model):
         return f"<Exhibition {self.title}>"
 
 
+class ExhibitionMergedRegion(db.Model):
+    """
+    展覽樓層上的合併區（多個 Cell 合併為一個命名區塊）
+    展覽顯示時會以區塊為單位自成一個網格並顯示區域名稱。
+    """
+    __tablename__ = "exhibition_merged_regions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    floor_id = db.Column(db.Integer, db.ForeignKey("exhibition_floors.id"), nullable=False, index=True)
+
+    # 合併區顯示名稱（例如「主展區」「服務台」）
+    name = db.Column(db.String(200), nullable=False)
+
+    # 顯示順序（數字越小越前面）
+    display_order = db.Column(db.Integer, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    floor = db.relationship("ExhibitionFloor", back_populates="merged_regions")
+    cells = db.relationship("ExhibitionCell", back_populates="merged_region", foreign_keys="ExhibitionCell.merged_region_id")
+
+    def __repr__(self):
+        return f"<ExhibitionMergedRegion {self.floor_id}:{self.name}>"
+
+
 class ExhibitionFloor(db.Model):
     """
     展覽樓層資料表（含平面圖與實際尺寸）
@@ -258,6 +283,7 @@ class ExhibitionFloor(db.Model):
 
     exhibition = db.relationship("Exhibition", back_populates="floors")
     cells = db.relationship("ExhibitionCell", back_populates="floor", cascade="all, delete-orphan")
+    merged_regions = db.relationship("ExhibitionMergedRegion", back_populates="floor", cascade="all, delete-orphan")
 
     __table_args__ = (
         db.UniqueConstraint("exhibition_id", "floor_code", name="uq_exhibition_floor_code"),
@@ -271,6 +297,7 @@ class ExhibitionCell(db.Model):
     """
     展覽樓層上的區域（Cell）
     UI 對外使用 cell_code（例如 C000001），內部使用 row / col 做排序與點擊定位。
+    可選屬於某個合併區（merged_region_id），展覽顯示時會依合併區分塊呈現。
     """
     __tablename__ = "exhibition_cells"
 
@@ -290,9 +317,13 @@ class ExhibitionCell(db.Model):
     # 是否為有效區域（牆壁、樓梯等可標記為 False）
     is_active = db.Column(db.Boolean, default=True)
 
+    # 所屬合併區（可選）；同一合併區的儲存格在展覽頁會自成一個網格區塊並顯示區域名稱
+    merged_region_id = db.Column(db.Integer, db.ForeignKey("exhibition_merged_regions.id"), nullable=True, index=True)
+
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     floor = db.relationship("ExhibitionFloor", back_populates="cells")
+    merged_region = db.relationship("ExhibitionMergedRegion", back_populates="cells", foreign_keys=[merged_region_id])
 
     __table_args__ = (
         db.UniqueConstraint("floor_id", "cell_code", name="uq_floor_cell_code"),

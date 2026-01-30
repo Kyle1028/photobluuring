@@ -68,21 +68,37 @@ CREATE TABLE IF NOT EXISTS exhibition_floors (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
+-- 2b2. exhibition_merged_regions 展覽樓層合併區（多格合併為一命名區塊）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS exhibition_merged_regions (
+    id           INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    floor_id     INT NOT NULL,
+    name         VARCHAR(200) NOT NULL,      -- 合併區顯示名稱（如「主展區」）
+    display_order INT NOT NULL DEFAULT 0,
+    created_at   DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX ix_exhibition_merged_regions_floor_id (floor_id),
+    CONSTRAINT fk_exhibition_merged_regions_floor FOREIGN KEY (floor_id) REFERENCES exhibition_floors(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
 -- 2c. exhibition_cells 展覽樓層區域（Cell，C000001 起，每層重置）
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS exhibition_cells (
-    id         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    floor_id   INT NOT NULL,
-    cell_code  VARCHAR(10) NOT NULL,         -- C000001...
-    row        INT NOT NULL,                 -- 內部 row（上到下）
-    col        INT NOT NULL,                 -- 內部 col（左到右）
-    name       VARCHAR(200) NULL,
-    is_active  TINYINT(1) NULL DEFAULT 1,
-    created_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    id                INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    floor_id          INT NOT NULL,
+    cell_code         VARCHAR(10) NOT NULL,         -- C000001...
+    row               INT NOT NULL,                 -- 內部 row（上到下）
+    col               INT NOT NULL,                 -- 內部 col（左到右）
+    name              VARCHAR(200) NULL,
+    is_active         TINYINT(1) NULL DEFAULT 1,
+    merged_region_id  INT NULL,                     -- 所屬合併區（可選）
+    created_at        DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX ix_exhibition_cells_floor_id (floor_id),
+    INDEX ix_exhibition_cells_merged_region_id (merged_region_id),
     CONSTRAINT uq_floor_cell_code UNIQUE (floor_id, cell_code),
     CONSTRAINT uq_floor_row_col UNIQUE (floor_id, row, col),
-    CONSTRAINT fk_exhibition_cells_floor FOREIGN KEY (floor_id) REFERENCES exhibition_floors(id)
+    CONSTRAINT fk_exhibition_cells_floor FOREIGN KEY (floor_id) REFERENCES exhibition_floors(id),
+    CONSTRAINT fk_exhibition_cells_merged_region FOREIGN KEY (merged_region_id) REFERENCES exhibition_merged_regions(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
@@ -144,5 +160,18 @@ CREATE TABLE IF NOT EXISTS exhibition_photos (
 -- exhibitions (1) ----< media    : exhibition_id -> exhibitions.id
 -- exhibitions (1) ----< exhibition_photos : exhibition_id -> exhibitions.id
 -- exhibitions (1) ----< exhibition_floors  : exhibition_id -> exhibitions.id
+-- exhibition_floors (1) ----< exhibition_merged_regions : floor_id -> exhibition_floors.id
 -- exhibition_floors (1) ----< exhibition_cells : floor_id -> exhibition_floors.id
+-- exhibition_merged_regions (1) ----< exhibition_cells : merged_region_id -> exhibition_merged_regions.id
 -- media (M) ----< media_cells >---- (M) exhibition_cells : media_id/cell_id
+
+-- ============================================================
+-- 既有資料庫升級：合併區功能（若已存在 exhibition_cells 表）
+-- ============================================================
+-- 1. 建立合併區表（若尚未建立）：
+--    CREATE TABLE IF NOT EXISTS exhibition_merged_regions (...); 見上方 2b2。
+-- 2. 為 exhibition_cells 新增欄位（若尚未有 merged_region_id）：
+--    ALTER TABLE exhibition_cells ADD COLUMN merged_region_id INT NULL AFTER is_active;
+--    ALTER TABLE exhibition_cells ADD INDEX ix_exhibition_cells_merged_region_id (merged_region_id);
+--    ALTER TABLE exhibition_cells ADD CONSTRAINT fk_exhibition_cells_merged_region
+--      FOREIGN KEY (merged_region_id) REFERENCES exhibition_merged_regions(id) ON DELETE SET NULL;

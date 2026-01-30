@@ -20,6 +20,7 @@ from core.models import (
     Media,
     ExhibitionFloor,
     ExhibitionCell,
+    ExhibitionMergedRegion,
     _public_id_exhibition,
     media_cells,
 )
@@ -58,14 +59,14 @@ def _generate_cells_for_floor(floor: ExhibitionFloor) -> None:
     existing_cells = ExhibitionCell.query.filter_by(floor_id=floor.id).all()
     
     if existing_cells:
-        # 先刪除 media_cells 關聯表中的記錄（避免外鍵約束錯誤）
+        # 先刪除該樓層的合併區（合併區底下的 cells 即將被刪除）
+        ExhibitionMergedRegion.query.filter_by(floor_id=floor.id).delete()
+        # 再刪除 media_cells 關聯表中的記錄（避免外鍵約束錯誤）
         cell_ids = [cell.id for cell in existing_cells]
-        # 使用 SQLAlchemy 刪除關聯記錄
         if cell_ids:
             db.session.execute(
                 media_cells.delete().where(media_cells.c.cell_id.in_(cell_ids))
             )
-        
         # 然後刪除 cells
         for cell in existing_cells:
             db.session.delete(cell)
@@ -884,6 +885,72 @@ def cells_management(exhibition_public_id, floor_code):
         abort(404, _("找不到該樓層"))
     
     if request.method == "POST":
+        # 合併區操作：建立 / 更新名稱 / 解除合併
+        action = (request.form.get("merge_action") or "").strip()
+        if action == "create":
+            merge_name = (request.form.get("merge_region_name") or "").strip()
+            merge_cell_ids = request.form.getlist("merge_cell_ids")
+            if merge_name and merge_cell_ids:
+                try:
+                    region = ExhibitionMergedRegion(
+                        floor_id=floor.id,
+                        name=merge_name,
+                        display_order=len(floor.merged_regions) if floor.merged_regions else 0,
+                    )
+                    db.session.add(region)
+                    db.session.flush()
+                    for cid_str in merge_cell_ids:
+                        try:
+                            cid = int(cid_str)
+                            cell = ExhibitionCell.query.get(cid)
+                            if cell and cell.floor_id == floor.id:
+                                cell.merged_region_id = region.id
+                        except (ValueError, TypeError):
+                            pass
+                    db.session.commit()
+                    flash(_("合併區「%(name)s」已建立") % {"name": merge_name}, "success")
+                except Exception as e:
+                    db.session.rollback()
+                    flash((_("建立合併區失敗：%(error)s") % {"error": str(e)}), "error")
+            else:
+                flash(_("請輸入區域名稱並至少選擇一個儲存格"), "warning")
+            return redirect(url_for("admin.cells_management", exhibition_public_id=exhibition.public_id, floor_code=floor_code))
+        if action == "update":
+            region_id = request.form.get("merge_region_id")
+            new_name = (request.form.get("merge_region_new_name") or "").strip()
+            if region_id and new_name:
+                try:
+                    region = ExhibitionMergedRegion.query.get(int(region_id))
+                    if region and region.floor_id == floor.id:
+                        region.name = new_name
+                        db.session.commit()
+                        flash(_("合併區名稱已更新"), "success")
+                    else:
+                        flash(_("找不到該合併區"), "error")
+                except (ValueError, TypeError) as e:
+                    db.session.rollback()
+                    flash((_("更新失敗：%(error)s") % {"error": str(e)}), "error")
+            else:
+                flash(_("請輸入新名稱"), "warning")
+            return redirect(url_for("admin.cells_management", exhibition_public_id=exhibition.public_id, floor_code=floor_code))
+        if action == "delete":
+            region_id = request.form.get("merge_region_id")
+            if region_id:
+                try:
+                    region = ExhibitionMergedRegion.query.get(int(region_id))
+                    if region and region.floor_id == floor.id:
+                        for cell in list(region.cells):
+                            cell.merged_region_id = None
+                        db.session.delete(region)
+                        db.session.commit()
+                        flash(_("合併區已解除"), "success")
+                    else:
+                        flash(_("找不到該合併區"), "error")
+                except (ValueError, TypeError) as e:
+                    db.session.rollback()
+                    flash((_("解除合併失敗：%(error)s") % {"error": str(e)}), "error")
+            return redirect(url_for("admin.cells_management", exhibition_public_id=exhibition.public_id, floor_code=floor_code))
+
         # 批量更新區域名稱與啟用狀態
         cell_updates = {}
         # 先收集所有 cell_id
@@ -935,7 +1002,7 @@ def cells_management(exhibition_public_id, floor_code):
         
         return redirect(url_for("admin.cells_management", exhibition_public_id=exhibition.public_id, floor_code=floor_code))
     
-    # GET：顯示區域列表
+    # GET：顯示區域列表與合併區
     cells = list(floor.cells)
     # 依 row, col 排序（上到下、左到右）
     cells.sort(key=lambda c: (c.row, c.col))
@@ -944,7 +1011,23 @@ def cells_management(exhibition_public_id, floor_code):
     for cell in cells:
         cell.media_count = len(cell.media_files) if hasattr(cell, 'media_files') else 0
     
-    return render_template("admin/cells_management.html", exhibition=exhibition, floor=floor, cells=cells)
+    merged_regions = list(floor.merged_regions) if hasattr(floor, 'merged_regions') else []
+    merged_regions.sort(key=lambda r: (r.display_order, r.id))
+    for r in merged_regions:
+        r.cell_codes_sorted = [c.cell_code for c in sorted(r.cells, key=lambda c: (c.row, c.col))]
+    merged_regions_for_plan = [
+        {"name": r.name, "cells": [{"row": c.row, "col": c.col} for c in r.cells]}
+        for r in merged_regions
+    ]
+    
+    return render_template(
+        "admin/cells_management.html",
+        exhibition=exhibition,
+        floor=floor,
+        cells=cells,
+        merged_regions=merged_regions,
+        merged_regions_for_plan=merged_regions_for_plan,
+    )
 
 
 # ==================== 用戶角色管理（僅超級管理員） ====================

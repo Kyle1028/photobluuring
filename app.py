@@ -23,6 +23,7 @@ from core.models import (
     User,
     ExhibitionFloor,
     ExhibitionCell,
+    ExhibitionMergedRegion,
     _media_id_from_seq,
     _refresh_media_id_suffix,
 )  # 資料庫模型
@@ -1209,6 +1210,8 @@ def exhibition_detail(exhibition_public_id):
     selected_floor = None
     cells = []
     
+    cell_groups = []  # 依合併區分組，展覽頁依區塊顯示
+    merged_regions_for_plan = []  # 供平面圖繪製合併區名稱（僅含合併區）
     if floors and selected_floor_code:
         selected_floor = next((f for f in floors if f.floor_code == selected_floor_code), floors[0])
         if selected_floor:
@@ -1216,19 +1219,45 @@ def exhibition_detail(exhibition_public_id):
             _cells = [c for c in selected_floor.cells if c.is_active]
             _cells.sort(key=lambda c: (c.row, c.col))
             # 轉成可 JSON 序列化的 dict（供 template |tojson 使用）
-            cells = [
-                {
+            def _cell_dict(c):
+                return {
                     "id": c.id,
                     "cell_code": c.cell_code,
                     "row": c.row,
                     "col": c.col,
                     "name": c.name,
                     "is_active": bool(c.is_active),
-                    # 用於前端標示哪些格子已有媒體
                     "media_count": len(getattr(c, "media_files", []) or []),
+                    "merged_region_id": getattr(c, "merged_region_id", None),
                 }
-                for c in _cells
+            cells = [_cell_dict(c) for c in _cells]
+            # 依合併區分組：先各合併區（依 display_order），再「未分區」
+            merged_regions = list(getattr(selected_floor, "merged_regions", []) or [])
+            merged_regions.sort(key=lambda r: (r.display_order, r.id))
+            for mr in merged_regions:
+                region_cells = [c for c in _cells if getattr(c, "merged_region_id", None) == mr.id]
+                if region_cells:
+                    region_cells.sort(key=lambda c: (c.row, c.col))
+                    cell_groups.append({
+                        "region_name": mr.name,
+                        "region_id": mr.id,
+                        "cells": [_cell_dict(c) for c in region_cells],
+                    })
+            unmerged = [c for c in _cells if not getattr(c, "merged_region_id", None)]
+            if unmerged:
+                unmerged.sort(key=lambda c: (c.row, c.col))
+                cell_groups.append({
+                    "region_name": None,
+                    "region_id": None,
+                    "cells": [_cell_dict(c) for c in unmerged],
+                })
+            # 供平面圖繪製合併區名稱（僅含合併區，每區 name + cells 的 row,col）
+            merged_regions_for_plan = [
+                {"name": g["region_name"], "cells": [{"row": c["row"], "col": c["col"]} for c in g["cells"]]}
+                for g in cell_groups if g.get("region_name")
             ]
+        else:
+            merged_regions_for_plan = []
     
     return render_template(
         "exhibition_detail.html",
@@ -1237,6 +1266,8 @@ def exhibition_detail(exhibition_public_id):
         floors=floors,
         selected_floor=selected_floor,
         cells=cells,
+        cell_groups=cell_groups,
+        merged_regions_for_plan=merged_regions_for_plan,
     )
 
 
@@ -1339,10 +1370,14 @@ def get_cell_media(exhibition_public_id, floor_code, cell_code):
             "status": media.status,
         })
     
+    merged_region_name = None
+    if getattr(cell, "merged_region_id", None) and getattr(cell, "merged_region", None):
+        merged_region_name = cell.merged_region.name
     return jsonify({
         "floor_code": floor_code,
         "cell_code": cell_code,
         "cell_name": cell.name or cell_code,
+        "merged_region_name": merged_region_name,
         "media": media_list,
         "count": len(media_list),
     })
@@ -1652,7 +1687,6 @@ def upload_exhibition_with_cells(exhibition_public_id):
     # 載入該樓層的所有有效區域（只包含 is_active=True 的網格，依 row, col 排序）
     _cells = [c for c in selected_floor.cells if c.is_active]
     _cells.sort(key=lambda c: (c.row, c.col))
-    # 轉成可 JSON 序列化的 dict（供 template |tojson 使用）
     cells = [
         {
             "id": c.id,
@@ -1662,9 +1696,21 @@ def upload_exhibition_with_cells(exhibition_public_id):
             "name": c.name,
             "is_active": bool(c.is_active),
             "media_count": len(getattr(c, "media_files", []) or []),
+            "merged_region_id": getattr(c, "merged_region_id", None),
         }
         for c in _cells
     ]
+    # 合併區：供上傳時可一次選取整個合併區
+    merged_regions = []
+    merged_regions_for_plan = []
+    for mr in sorted(getattr(selected_floor, "merged_regions", []) or [], key=lambda r: (r.display_order, r.id)):
+        region_cells = [c for c in mr.cells if getattr(c, "is_active", True)]
+        if region_cells:
+            merged_regions.append({"id": mr.id, "name": mr.name, "cell_ids": [c.id for c in region_cells]})
+            merged_regions_for_plan.append({
+                "name": mr.name,
+                "cells": [{"row": c.row, "col": c.col} for c in region_cells],
+            })
     
     return render_template(
         "upload_grid_selection.html",
@@ -1672,6 +1718,8 @@ def upload_exhibition_with_cells(exhibition_public_id):
         floors=floors,
         selected_floor=selected_floor,
         cells=cells,
+        merged_regions=merged_regions,
+        merged_regions_for_plan=merged_regions_for_plan,
     )
 
 
