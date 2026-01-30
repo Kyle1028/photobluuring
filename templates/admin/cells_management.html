@@ -933,6 +933,9 @@
         let fpLastX = 0;
         let fpLastY = 0;
         let fpMoved = false;
+        let fpDownX = 0;
+        let fpDownY = 0;
+        let fpPointerDown = false;
 
         function clamp(n, min, max) {
             return Math.max(min, Math.min(max, n));
@@ -1081,6 +1084,7 @@
                     e.preventDefault();
                     e.stopPropagation();
                     if (fpMoved) return;
+                    if (planMode === 'none') return;
                     if (planMode === 'merge') {
                         if (!cell.is_active) return;
                         if (mergeSelectionSet.has(cell.id)) {
@@ -1236,41 +1240,46 @@
             }, { passive: false });
 
             stage.addEventListener('pointerdown', (e) => {
-                // 如果點到格子，保留原本的點擊/合併行為，不進入拖曳
-                const t = e.target;
-                if (t && t.tagName && t.tagName.toLowerCase() === 'rect') {
-                    fpDragging = false;
-                    fpMoved = false;
-                    return;
-                }
-                fpDragging = true;
+                if (e.button !== 0) return;
+                fpPointerDown = true;
+                fpDragging = false;
                 fpMoved = false;
+                fpDownX = e.clientX;
+                fpDownY = e.clientY;
                 fpLastX = e.clientX;
                 fpLastY = e.clientY;
-                stage.setPointerCapture?.(e.pointerId);
             });
 
             stage.addEventListener('pointermove', (e) => {
-                if (!fpDragging) return;
+                if (!fpPointerDown || (e.buttons & 1) !== 1) return;
+                const dxTotal = e.clientX - fpDownX;
+                const dyTotal = e.clientY - fpDownY;
+                if (!fpDragging) {
+                    if (Math.abs(dxTotal) + Math.abs(dyTotal) <= 5) return;
+                    fpDragging = true;
+                    fpMoved = true;
+                    stage.setPointerCapture?.(e.pointerId);
+                }
                 const dx = e.clientX - fpLastX;
                 const dy = e.clientY - fpLastY;
                 fpLastX = e.clientX;
                 fpLastY = e.clientY;
-                if (Math.abs(dx) + Math.abs(dy) > 5) fpMoved = true;
                 fpTx += dx;
                 fpTy += dy;
                 applyFloorplanTransform();
-                e.preventDefault();
+                if (fpMoved) e.preventDefault();
             }, { passive: false });
 
             stage.addEventListener('pointerup', (e) => {
                 fpDragging = false;
+                fpPointerDown = false;
                 stage.releasePointerCapture?.(e.pointerId);
                 setTimeout(() => { fpMoved = false; }, 0);
             });
 
             stage.addEventListener('pointercancel', (e) => {
                 fpDragging = false;
+                fpPointerDown = false;
                 stage.releasePointerCapture?.(e.pointerId);
                 setTimeout(() => { fpMoved = false; }, 0);
             });
@@ -1333,21 +1342,29 @@
             const btnMerge = document.getElementById('mode-merge');
             const help = document.getElementById('previewHelpText');
             function setMode(mode) {
-                planMode = mode;
+                if (planMode === mode) {
+                    planMode = 'none';
+                } else {
+                    planMode = mode;
+                }
                 if (btnActive) {
                     btnActive.classList.remove('active', 'merge-mode');
-                    btnActive.setAttribute('aria-pressed', mode === 'active' ? 'true' : 'false');
-                    if (mode === 'active') btnActive.classList.add('active');
+                    btnActive.setAttribute('aria-pressed', planMode === 'active' ? 'true' : 'false');
+                    if (planMode === 'active') btnActive.classList.add('active');
                 }
                 if (btnMerge) {
                     btnMerge.classList.remove('active', 'merge-mode');
-                    btnMerge.setAttribute('aria-pressed', mode === 'merge' ? 'true' : 'false');
-                    if (mode === 'merge') {
+                    btnMerge.setAttribute('aria-pressed', planMode === 'merge' ? 'true' : 'false');
+                    if (planMode === 'merge') {
                         btnMerge.classList.add('active', 'merge-mode');
                     }
                 }
-                if (help) help.textContent = mode === 'merge' ? modeMergeText : modeActiveText;
-                if (mode !== 'merge') mergeSelectionSet.clear();
+                if (help) {
+                    if (planMode === 'merge') help.textContent = modeMergeText;
+                    else if (planMode === 'active') help.textContent = modeActiveText;
+                    else help.textContent = "{{ _('已關閉操作模式，請選擇一種模式。') }}";
+                }
+                if (planMode !== 'merge') mergeSelectionSet.clear();
                 updateMergeSelectionUI();
                 renderPreviewGrid();
             }
